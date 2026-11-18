@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pokédex · Mundo Misterioso Azul</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#1a2030;--panel2:#232b3d;--line:#343e55;--text:#f3f5fb;--muted:#a9b3c8;--accent:#77e0c1;--yellow:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#202b43 0,#10131b 58%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:28px max(18px,calc((100% - 1250px)/2)) 18px;border-bottom:1px solid var(--line);background:#111722cc}
+h1{margin:0;font-size:clamp(24px,4vw,36px);letter-spacing:-.8px}header p{margin:7px 0 0;color:var(--muted)}.langbar{display:flex;align-items:center;gap:9px;margin-top:14px}.langbar select{width:175px;padding:7px 10px}
+main{max-width:1250px;margin:auto;padding:20px 18px 48px}.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);padding:12px 16px;border-radius:14px;min-width:130px}.stat strong{display:block;font-size:23px}.stat span{color:var(--muted);font-size:12px}
+.progress{height:9px;background:#30384a;border-radius:99px;overflow:hidden;margin:0 0 22px}.progress div{height:100%;width:0;background:linear-gradient(90deg,#53c8b0,#b0f2d8);transition:width .2s}
+.controls{display:grid;grid-template-columns:minmax(200px,1fr) 160px 175px 205px auto;gap:10px;margin-bottom:18px}
+input,select,button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;min-width:0}
+button{cursor:pointer}button:hover{border-color:var(--accent)}.secondary{background:var(--panel2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{position:relative;min-width:0;text-align:center;padding:12px 9px 13px;border:1px solid var(--line);background:linear-gradient(145deg,#20283a,#171d2a);border-radius:15px;cursor:pointer;transition:transform .12s,border-color .12s,opacity .12s}
+.card{border-left:3px solid var(--zone-color,var(--line))}.card:hover{transform:translateY(-2px);border-color:var(--zone-color,#8291b1)}.card.done{border-color:#4ab99b;background:linear-gradient(145deg,#193c39,#172b31)}.card.done .portrait{filter:none}.card.done .poke-name{text-decoration:line-through;color:#b4e9d9}
+.card.legendary.done{border:2px solid #ffd166;box-shadow:0 0 8px #ffd166aa,0 0 22px #ffb70055;background:linear-gradient(145deg,#4a3a1b,#292316)}.card.legendary.done .poke-name{color:#ffe6a1}.card.legendary.done .check{color:#ffd166;text-shadow:0 0 8px #ffd166}
+.num{font-size:11px;color:var(--muted);letter-spacing:1px}.portrait{height:92px;width:100%;object-fit:contain;image-rendering:pixelated;filter:grayscale(.85) brightness(.78);margin:3px 0 6px}.poke-name{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.check{position:absolute;right:9px;top:8px;color:var(--accent);font-size:18px}.hint{color:var(--muted);font-size:12px;margin-top:4px}
+.card[data-tooltip]:hover::after{content:attr(data-tooltip);white-space:pre-line;position:absolute;z-index:10;left:50%;bottom:calc(100% - 5px);transform:translateX(-50%);width:min(270px,85vw);padding:10px 12px;border:1px solid #62718e;border-radius:10px;background:#080c14;color:white;text-align:left;box-shadow:0 8px 25px #0009;font-size:12px;pointer-events:none}
+.copy-tools{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px}
+.copy-tools button{padding:3px 9px;border-radius:8px;font-size:16px;line-height:1.4;background:#111827}
+.copy-count{font-size:12px;color:var(--muted);min-width:62px}.zone-tag{font-size:11px;line-height:1.25;color:var(--zone-color,#a9b3c8);margin-top:5px;min-height:27px;display:flex;align-items:center;justify-content:center}
+.empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
+footer{color:var(--muted);font-size:12px;margin-top:22px}a{color:var(--accent)}
+@media(max-width:700px){.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}.grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr))}.stat{flex:1}.card[data-tooltip]:hover::after{display:none}}
+
+.ra-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 18px}.ra-toolbar button.active{border-color:#ffd166;color:#ffd166;background:#352d1e}.ra-panel{display:none}.ra-panel.active{display:block}.ra-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 16px}.ra-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}.ra-ach{border:1px solid var(--line);border-left:4px solid var(--zone-color,#a9b3c8);background:var(--panel);border-radius:13px;padding:14px}.ra-ach.complete{border-color:#d5ae55;background:linear-gradient(130deg,#302d20,#202735)}.ra-ach-head{display:flex;gap:12px;align-items:center}.ra-badge{width:56px;height:56px;flex:0 0 56px;border-radius:9px;background:#343c51;display:grid;place-items:center;font-size:26px;text-decoration:none;border:1px solid #56617b}.ra-badge img{display:block;width:54px;height:54px;object-fit:contain;border-radius:8px;image-rendering:pixelated}.ra-badge-fallback{font-size:11px;text-align:center;color:#a9b3c8}.ra-title{font-weight:700}.ra-small{color:var(--muted);font-size:12px}.ra-track{height:8px;background:#323a4b;border-radius:99px;overflow:hidden;margin:12px 0 7px}.ra-fill{height:100%;background:#65cdb3}.ra-ach.complete .ra-fill{background:#e7bd5b}.ra-missing{font-size:12px;line-height:1.7;margin-top:10px}.ra-missing button{padding:3px 7px;font-size:12px;margin:3px;background:#253047}.ra-note{font-size:12px;color:var(--muted);margin-bottom:12px}
+</style></head>
+<body>
+<header><h1 id="heading">🔎 Pokédex de rescate</h1><p id="subtitle">Pokémon Mundo Misterioso: Equipo de rescate azul · Marca los que ya has reclutado.</p><div class="langbar"><label for="language" id="languageLabel">Idioma / Language</label><select id="language"><option value="es">🇪🇸 Español</option><option value="en">🇬🇧 English</option></select></div></header>
+<main>
+<div class="stats"><div class="stat"><strong id="doneCount">0</strong><span id="recruitedLabel">Reclutados</span></div><div class="stat"><strong id="totalCount">413</strong><span id="totalLabel">Pokémon y formas</span></div><div class="stat"><strong id="percent">0%</strong><span id="completedLabel">Completado</span></div></div>
+<div class="progress"><div id="bar"></div></div>
+<div class="ra-toolbar"><button id="raToggle" type="button">🏆 Modo RetroAchievements</button><span id="raModeHint" class="ra-small"></span></div>
+<div id="raPanel" class="ra-panel"><div class="ra-summary"><strong id="raTotal"></strong><select id="raSort"><option value="missing">Menos Pokémon pendientes</option><option value="percent">Mayor progreso</option><option value="name">Nombre del área</option></select><select id="raFilter"><option value="all">Todos los logros</option><option value="pending">Incompletos</option><option value="done">Completados</option></select></div><p class="ra-note" id="raDisclaimer"></p><div id="raList" class="ra-list"></div></div>
+<div id="dexPanel"><div class="controls">
+<input id="search" type="search" placeholder="Buscar Pokémon por nombre o número…">
+<select id="filter"><option value="all">Todos los Pokémon</option><option value="pending">Pendientes</option><option value="done">Reclutados</option></select>
+<select id="sort"><option value="number">Orden: número</option><option value="name">Orden: nombre</option><option value="pending">Pendientes primero</option><option value="zone">Zona de recreo</option></select>
+<select id="zoneFilter"><option value="all">Todas las zonas de recreo</option></select>
+<button id="reset" class="secondary">Reiniciar marcas</button>
+</div>
+<div id="grid" class="grid"><div class="empty">Cargando Pokédex…</div></div>
+</div><footer id="footerText">Las marcas se guardan en este navegador. La forma Unown A hereda el progreso del Unown original; las otras 27 formas se marcan por separado. Las imágenes de portraits se cargan desde <a href="https://sprites.pmdcollab.org/#/" target="_blank" rel="noreferrer">PMD Sprite Repository</a> (requieren internet; créditos a sus artistas). Las 28 formas de Unown y sus pisos se basan en <a href="https://mysterydungeonwiki.com/wiki/Rescue_Team:Unown_Relic" target="_blank" rel="noreferrer">Mystery Dungeon Wiki</a>. Las zonas de recreo se basan en la <a href="https://www.guiasnintendo.com/0_NINTENDO_DS/Pokemon_mundo_misterioso/Pokemon_mundo_misterioso_sp/pokemon2.html" target="_blank" rel="noreferrer">guía de Guías Nintendo</a>. Los colores son orientativos y están inspirados en el ambiente de cada zona. Para consultar las <a href="https://pokemon.fandom.com/es/wiki/Zonas_de_recreo" target="_blank" rel="noreferrer">imágenes y descripciones de las zonas</a>, visita Pokémon Wiki.</footer>
+</main>
+<script>
+const KEY='pmd-blue-rescue-dex-v1';
+const COPIES_KEY='pmd-blue-rescue-dex-copies-v1';
+const LANG_KEY='pmd-blue-rescue-language-v1';
+let lang=localStorage.getItem(LANG_KEY)==='en'?'en':'es';
+let pokemon=[], recruited=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'));
+let copies={};
+try{copies=JSON.parse(localStorage.getItem(COPIES_KEY)||'{}')||{};}catch(e){copies={};}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pretty=s=>s.split('-').map(w=>w==='mr'?'Mr.':w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+const guide='https://gamefaqs.gamespot.com/ds/929407-pokemon-mystery-dungeon-blue-rescue-team/faqs/79172/pokemon-by-location';
+// Zonas de recreo según la guía de Guías Nintendo.
+const zoneById={
+  1: "Pradera Encanto",
+  2: "Pradera Encanto",
+  3: "Pradera Encanto",
+  4: "Monte Partido",
+  5: "Monte Partido",
+  6: "Monte Partido",
+  7: "Charca Tortuga",
+  8: "Charca Tortuga",
+  9: "Charca Tortuga",
+  10: "Bosque Brumoso",
+  11: "Bosque Brumoso",
+  12: "Bosque Brumoso",
+  13: "Bosque Brumoso",
+  14: "Bosque Brumoso",
+  15: "Bosque Brumoso",
+  16: "Bosque Nido",
+  17: "Bosque Nido",
+  18: "Bosque Nido",
+  19: "Pradera Salvaje",
+  20: "Pradera Salvaje",
+  21: "Campo Terroso",
+  22: "Campo Terroso",
+  23: "Pradera Salvaje",
+  24: "Pradera Salvaje",
+  25: "Bosque Elemental",
+  26: "Bosque Elemental",
+  27: "Desierto Horno",
+  28: "Desierto Horno",
+  29: "Sabana",
+  30: "Sabana",
+  31: "Sabana",
+  32: "Sabana",
+  33: "Sabana",
+  34: "Sabana",
+  35: "Monte Selene",
+  36: "Monte Selene",
+  37: "Montes Oscuros",
+  38: "Montes Oscuros",
+  39: "Pradera Celeste",
+  40: "Pradera Celeste",
+  41: "Cueva del Eco",
+  42: "Cueva del Eco",
+  43: "Selva",
+  44: "Selva",
+  45: "Selva",
+  46: "Bosque de Setas",
+  47: "Bosque de Setas",
+  48: "Bosque Secreto",
+  49: "Bosque Secreto",
+  50: "Cueva Granito",
+  51: "Cueva Granito",
+  52: "Bosque Elemental",
+  53: "Bosque Elemental",
+  54: "Charca Tortuga",
+  55: "Charca Tortuga",
+  56: "Bosque Elemental",
+  57: "Bosque Elemental",
+  58: "Tierra Quemada",
+  59: "Tierra Quemada",
+  60: "Charca Renacuajo",
+  61: "Charca Renacuajo",
+  62: "Charca Renacuajo",
+  63: "Vieja Central",
+  64: "Vieja Central",
+  65: "Vieja Central",
+  66: "Monte Disciplina",
+  67: "Monte Disciplina",
+  68: "Monte Disciplina",
+  69: "Selva",
+  70: "Selva",
+  71: "Selva",
+  72: "Mar Rico",
+  73: "Mar Rico",
+  74: "Monte Verderol",
+  75: "Monte Verderol",
+  76: "Monte Verderol",
+  77: "Tierra Quemada",
+  78: "Tierra Quemada",
+  79: "Mar Rico",
+  80: "Mar Rico",
+  81: "Central Energía",
+  82: "Central Energía",
+  83: "Pradera Salvaje",
+  84: "Sabana",
+  85: "Sabana",
+  86: "Playa Cubito",
+  87: "Playa Cubito",
+  88: "Pantano Ponzoña",
+  89: "Pantano Ponzoña",
+  90: "Mar Rico",
+  91: "Mar Rico",
+  92: "Montes Oscuros",
+  93: "Montes Oscuros",
+  94: "Montes Oscuros",
+  95: "Cueva Granito",
+  96: "Pradera Salvaje",
+  97: "Pradera Salvaje",
+  98: "Cala Chica",
+  99: "Cala Chica",
+  100: "Central Energía",
+  101: "Central Energía",
+  102: "Selva",
+  103: "Selva",
+  104: "Monte Verderol",
+  105: "Monte Verderol",
+  106: "Monte Disciplina",
+  107: "Monte Disciplina",
+  108: "Pradera Celeste",
+  109: "Pantano Ponzoña",
+  110: "Pantano Ponzoña",
+  111: "Sabana",
+  112: "Sabana",
+  113: "Pradera Celeste",
+  114: "Selva",
+  115: "Sabana",
+  116: "Mar del Tesoro",
+  117: "Mar del Tesoro",
+  118: "Río Manso",
+  119: "Río Manso",
+  120: "Mar Rico",
+  121: "Mar Rico",
+  122: "Vieja Central",
+  123: "Bosque Crecido",
+  124: "Caverna Gélida",
+  125: "Central Energía",
+  126: "Cráter",
+  127: "Bosque Crecido",
+  128: "Sabana",
+  129: "Lago Cascada",
+  130: "Lago Cascada",
+  131: "Lago Místico",
+  132: "Vieja Central",
+  133: "Bosque Transform",
+  134: "Bosque Transform",
+  135: "Bosque Transform",
+  136: "Bosque Transform",
+  137: "Vieja Central",
+  138: "Fosa Abisal",
+  139: "Fosa Abisal",
+  140: "Fosa Abisal",
+  141: "Fosa Abisal",
+  142: "Vieja Reliquia",
+  143: "Bosque Elemental",
+  144: "Isla Legendaria",
+  145: "Isla Legendaria",
+  146: "Isla Legendaria",
+  147: "Lago Místico",
+  148: "Lago Místico",
+  149: "Lago Místico",
+  150: "Cueva Enigmática",
+  151: "Isla Final",
+  152: "Pradera Encanto",
+  153: "Pradera Encanto",
+  154: "Pradera Encanto",
+  155: "Tierra Quemada",
+  156: "Tierra Quemada",
+  157: "Tierra Quemada",
+  158: "Río Manso",
+  159: "Río Manso",
+  160: "Río Manso",
+  161: "Prado del Trueno",
+  162: "Prado del Trueno",
+  163: "Bosque Nido",
+  164: "Bosque Nido",
+  165: "Bosque Brumoso",
+  166: "Bosque Brumoso",
+  167: "Bosque Secreto",
+  168: "Bosque Secreto",
+  169: "Cueva del Eco",
+  170: "Fosa Abisal",
+  171: "Fosa Abisal",
+  172: "Bosque Elemental",
+  173: "Monte Selene",
+  174: "Pradera Celeste",
+  175: "Bosque Nido",
+  176: "Bosque Nido",
+  177: "Bosque Nido",
+  178: "Bosque Nido",
+  179: "Prado del Trueno",
+  180: "Prado del Trueno",
+  181: "Prado del Trueno",
+  182: "Selva",
+  183: "Charca Tortuga",
+  184: "Charca Tortuga",
+  185: "Bosque Crecido",
+  186: "Charca Renacuajo",
+  187: "Pradera Encanto",
+  188: "Pradera Encanto",
+  189: "Pradera Encanto",
+  190: "Bosque Elemental",
+  191: "Selva",
+  192: "Selva",
+  193: "Bosque Brumoso",
+  194: "Ciénaga Maní",
+  195: "Ciénaga Maní",
+  196: "Bosque Transform",
+  197: "Bosque Transform",
+  198: "Bosque Nido",
+  199: "Mar Rico",
+  200: "Montes Oscuros",
+  201: "Vieja Cámara AN / Vieja Cámara O",
+  202: "Cueva del Eco",
+  203: "Pradera Celeste",
+  204: "Bosque Secreto",
+  205: "Bosque Secreto",
+  206: "Cueva del Eco",
+  207: "Monte Verderol",
+  208: "Cueva Granito",
+  209: "Pradera Celeste",
+  210: "Pradera Celeste",
+  211: "Mar Sereno",
+  212: "Bosque Crecido",
+  213: "Monte Verderol",
+  214: "Bosque Crecido",
+  215: "Montes Oscuros",
+  216: "Monte Verderol",
+  217: "Monte Verderol",
+  218: "Cráter",
+  219: "Cráter",
+  220: "Caverna Gélida",
+  221: "Caverna Gélida",
+  222: "Cala Chica",
+  223: "Mar del Tesoro",
+  224: "Mar del Tesoro",
+  225: "Caverna Gélida",
+  226: "Mar Sereno",
+  227: "Campo Terroso",
+  228: "Campo Terroso",
+  229: "Campo Terroso",
+  230: "Mar del Tesoro",
+  231: "Sabana",
+  232: "Sabana",
+  233: "Vieja Central",
+  234: "Bosque Elemental",
+  235: "Pradera Celeste",
+  236: "Monte Disciplina",
+  237: "Monte Disciplina",
+  238: "Caverna Gélida",
+  239: "Central Energía",
+  240: "Cráter",
+  241: "Sabana",
+  242: "Pradera Celeste",
+  243: "Campo Sagrado",
+  244: "Campo Sagrado",
+  245: "Campo Sagrado",
+  246: "Monte Partido",
+  247: "Monte Partido",
+  248: "Monte Partido",
+  249: "Corriente Marina",
+  250: "Pico Arco Iris",
+  251: "Bosque Sanador",
+  252: "Bosque Crecido",
+  253: "Bosque Crecido",
+  254: "Bosque Crecido",
+  255: "Tierra Quemada",
+  256: "Tierra Quemada",
+  257: "Tierra Quemada",
+  258: "Ciénaga Maní",
+  259: "Ciénaga Maní",
+  260: "Ciénaga Maní",
+  261: "Pradera Salvaje",
+  262: "Pradera Salvaje",
+  263: "Pradera Salvaje",
+  264: "Pradera Salvaje",
+  265: "Bosque Brumoso",
+  266: "Bosque Brumoso",
+  267: "Bosque Brumoso",
+  268: "Bosque Brumoso",
+  269: "Bosque Brumoso",
+  270: "Charca Renacuajo",
+  271: "Charca Renacuajo",
+  272: "Charca Renacuajo",
+  273: "Bosque de Setas",
+  274: "Bosque de Setas",
+  275: "Bosque de Setas",
+  276: "Pradera Encanto",
+  277: "Pradera Encanto",
+  278: "Cala Chica",
+  279: "Cala Chica",
+  280: "Pradera Celeste",
+  281: "Pradera Celeste",
+  282: "Pradera Celeste",
+  283: "Charca Renacuajo",
+  284: "Charca Renacuajo",
+  285: "Bosque de Setas",
+  286: "Bosque de Setas",
+  287: "Bosque Elemental",
+  288: "Bosque Elemental",
+  289: "Bosque Elemental",
+  290: "Bosque Secreto",
+  291: "Bosque Secreto",
+  292: "Bosque Secreto",
+  293: "Cueva del Eco",
+  294: "Cueva del Eco",
+  295: "Cueva del Eco",
+  296: "Monte Disciplina",
+  297: "Monte Disciplina",
+  298: "Charca Tortuga",
+  299: "Cueva del Eco",
+  300: "Bosque Elemental",
+  301: "Bosque Elemental",
+  302: "Montes Oscuros",
+  303: "Cueva del Eco",
+  304: "Monte Partido",
+  305: "Monte Partido",
+  306: "Monte Partido",
+  307: "Monte Disciplina",
+  308: "Monte Disciplina",
+  309: "Prado del Trueno",
+  310: "Prado del Trueno",
+  311: "Prado del Trueno",
+  312: "Prado del Trueno",
+  313: "Río Manso",
+  314: "Río Manso",
+  315: "Pradera Encanto",
+  316: "Pantano Ponzoña",
+  317: "Pantano Ponzoña",
+  318: "Mar del Tesoro",
+  319: "Mar del Tesoro",
+  320: "Mar Sereno",
+  321: "Mar Sereno",
+  322: "Cráter",
+  323: "Cráter",
+  324: "Cráter",
+  325: "Monte Verderol",
+  326: "Monte Verderol",
+  327: "Monte Verderol",
+  328: "Desierto Horno",
+  329: "Desierto Horno",
+  330: "Desierto Horno",
+  331: "Desierto Horno",
+  332: "Desierto Horno",
+  333: "Bosque Nido",
+  334: "Bosque Nido",
+  335: "Pradera Salvaje",
+  336: "Pradera Salvaje",
+  337: "Monte Selene",
+  338: "Monte Selene",
+  339: "Ciénaga Maní",
+  340: "Ciénaga Maní",
+  341: "Charca Tortuga",
+  342: "Charca Tortuga",
+  343: "Vieja Reliquia",
+  344: "Vieja Reliquia",
+  345: "Fosa Abisal",
+  346: "Fosa Abisal",
+  347: "Mar del Tesoro",
+  348: "Mar del Tesoro",
+  349: "Lago Cascada",
+  350: "Lago Cascada",
+  351: "Prado del Trueno",
+  352: "Bosque Crecido",
+  353: "Montes Oscuros",
+  354: "Montes Oscuros",
+  355: "Montes Oscuros",
+  356: "Montes Oscuros",
+  357: "Selva",
+  358: "Prado del Trueno",
+  359: "Montes Oscuros",
+  360: "Cueva del Eco",
+  361: "Caverna Gélida",
+  362: "Caverna Gélida",
+  363: "Playa Cubito",
+  364: "Playa Cubito",
+  365: "Playa Cubito",
+  366: "Fosa Abisal",
+  367: "Fosa Abisal",
+  368: "Fosa Abisal",
+  369: "Fosa Abisal",
+  370: "Mar del Tesoro",
+  371: "Cueva Dragón",
+  372: "Cueva Dragón",
+  373: "Cueva Dragón",
+  374: "Mina Magnética",
+  375: "Mina Magnética",
+  376: "Mina Magnética",
+  377: "Vieja Reliquia",
+  378: "Vieja Reliquia",
+  379: "Vieja Reliquia",
+  380: "Isla Sureña",
+  381: "Isla Sureña",
+  382: "Cueva Submarina",
+  383: "Caldera",
+  384: "Mirador Estratos",
+  385: "Monte Selene",
+  386: "Isla Recluida"
+};
+const zoneColors={"Bosque Brumoso":"#84b86b","Bosque Crecido":"#4da66b","Bosque Elemental":"#c3a36b","Bosque Nido":"#85b7d8","Bosque Sanador":"#67d8a5","Bosque Secreto":"#5c9870","Bosque Transform":"#b69ae8","Bosque de Setas":"#9cbf61","Cala Chica":"#63c5d9","Caldera":"#e27b48","Campo Sagrado":"#e3b75a","Campo Terroso":"#bd9a62","Caverna Gélida":"#9dcfe8","Central Energía":"#f1d35e","Charca Renacuajo":"#5fc4ad","Charca Tortuga":"#5db5db","Ciénaga Maní":"#a6b86d","Corriente Marina":"#61c6e7","Cráter":"#e49a55","Cueva Dragón":"#9a8ae0","Cueva Enigmática":"#9d85d4","Cueva Granito":"#a6aab5","Cueva Submarina":"#4c9de0","Cueva del Eco":"#9b93bf","Desierto Horno":"#d7ad62","Fosa Abisal":"#6486cf","Isla Final":"#a6d5e8","Isla Legendaria":"#d9b65b","Isla Recluida":"#ad8be0","Isla Sureña":"#e7a4b9","Lago Cascada":"#5dbbe0","Lago Místico":"#91a8e0","Mar Rico":"#4ba7d8","Mar Sereno":"#71c6d0","Mar del Tesoro":"#52a9b9","Mina Magnética":"#9ba8bb","Mirador Estratos":"#9bc9e8","Monte Disciplina":"#d88b6a","Monte Partido":"#b9a28b","Monte Selene":"#c2b6ed","Monte Verderol":"#a6c37a","Montes Oscuros":"#8d83bb","Pantano Ponzoña":"#a2b85f","Pico Arco Iris":"#e6a8e0","Playa Cubito":"#91d8e9","Pradera Celeste":"#75b8e5","Pradera Encanto":"#82c879","Pradera Salvaje":"#c5aa79","Prado del Trueno":"#e8ce5b","Río Manso":"#68c7c4","Sabana":"#d3b36e","Selva":"#63a86d","Tierra Quemada":"#e28a4e","Vieja Central":"#b4a4db","Vieja Cámara AN / Vieja Cámara O":"#b7a7d6","Vieja Reliquia":"#b1a48f"};
+// Localización y tasa base de los legendarios de la lista solicitada.
+const legendaryData={
+144:['Articuno','Cueva Helada · 5.º piso de la zona final','30%'],
+145:['Zapdos','Monte Trueno · 3.º piso de la cima','30%'],
+146:['Moltres','Monte Ígneo · 3.º piso de la cima','30%'],
+150:['Mewtwo','Cueva Occidental · 99.º piso','99,9%'],
+151:['Mew','Reliquia Enterrada · pisos 36–99','0,9%'],
+243:['Raikou','Campo Relámpago · 30.º piso','0,1%'],
+244:['Entei','Campo Ígneo · 30.º piso','0,1%'],
+245:['Suicune','Campo Ventisca · 30.º piso','0,1%'],
+249:['Lugia','Fosa Plateada · 99.º piso','99,9%'],
+250:['Ho-Oh','Monte Lejano · 40.º piso','99,9%'],
+251:['Celebi','Bosque Pureza · completar la prueba (98.º/99.º piso según guía)','100% · reclutamiento automático'],
+377:['Regirock','Reliquia Enterrada · 15.º piso','0,1%'],
+378:['Regice','Reliquia Enterrada · 25.º piso','0,1%'],
+379:['Registeel','Reliquia Enterrada · 35.º piso','0,1%'],
+380:['Latias','Plaza Pokémon · tras completar Valle Despeñadero','100% · reclutamiento automático'],
+381:['Latios','Plaza Pokémon · tras completar Valle Despeñadero','100% · reclutamiento automático'],
+382:['Kyogre','Mar Tormentoso · 40.º piso','50%'],
+383:['Groudon','Caverna Magma · 3.º piso de la zona final','−10% base; requiere bonificaciones'],
+384:['Rayquaza','Torre del Cielo · 9.º piso de la cima','−10% base; no se recluta en la primera visita'],
+385:['Jirachi','Cueva Deseo · 99.º piso','99,9%'],
+386:['Deoxys','Cueva Meteoro · 20.º piso','−10% base; requiere bonificaciones']
+};
+// Las 28 formas Unown se cuentan individualmente. El ID 201 conserva el progreso anterior.
+const UNOWN_PUNCTUATION={"!":"data:image/png;base64,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","?":"data:image/png;base64,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"};
+const unownForms='ABCDEFGHIJKLMNOPQRSTUVWXYZ!?'.split('');
+const unownFloors={A:'1, 7',B:'1, 7',C:'1, 5–6, 8–9, 11',D:'1, 8',E:'2, 6, 11',F:'2',G:'2, 5, 8–9, 11',H:'2, 9–10',I:'3, 7, 11',J:'3, 5, 10',K:'3, 7, 11',L:'3, 9',M:'4, 8–9, 11',N:'4, 10',O:'1, 4, 10–11',P:'2, 4, 10',Q:'5, 8–11',R:'1, 5',S:'2, 5, 8–9, 11',T:'3, 5, 10',U:'1, 6, 8–9',V:'3, 6, 10',W:'6',X:'2, 6',Y:'7',Z:'1, 7','!':'2–7','?':'2–7'};
+const unownArea=letter=>'ABCDEFGHIJKLMN'.includes(letter)?'Vieja Cámara AN':'Vieja Cámara O?';
+const legendaryIds=new Set(Object.keys(legendaryData).map(Number));
+function save(){localStorage.setItem(KEY,JSON.stringify([...recruited]));}
+function saveCopies(){localStorage.setItem(COPIES_KEY,JSON.stringify(copies));}
+
+const RA_AREAS=[{"en":"Boulder Cave","es":"Cueva Granito","expected":4},{"en":"Darkness Ridge","es":"Montes Oscuros","expected":13},{"en":"Rub-a-Dub River","es":"Río Manso","expected":7},{"en":"Decrepit Lab","es":"Vieja Central","expected":7},{"en":"Tadpole Pond","es":"Charca Renacuajo","expected":9},{"en":"Thunder Meadow","es":"Prado del Trueno","expected":11},{"en":"Mt. Discipline","es":"Monte Disciplina","expected":11},{"en":"Turtleshell Pond","es":"Charca Tortuga","expected":10},{"en":"Peanut Swamp","es":"Ciénaga Maní","expected":7},{"en":"Ravaged Field","es":"Campo Terroso","expected":5},{"en":"Poison Swamp","es":"Pantano Ponzoña","expected":6},{"en":"Ice Floe Beach","es":"Playa Cubito","expected":5},{"en":"Secretive Forest","es":"Bosque Secreto","expected":9},{"en":"Furnace Desert","es":"Desierto Horno","expected":7},{"en":"Frigid Cavern","es":"Caverna Gélida","expected":7},{"en":"Sky Blue Plains","es":"Pradera Celeste","expected":13},{"en":"Beau Plains","es":"Pradera Encanto","expected":12},{"en":"Ancient Relic","es":"Vieja Reliquia","expected":6},{"en":"Aged Chamber AN","es":"Vieja Cámara AN","expected":14},{"en":"Aged Chamber O?","es":"Vieja Cámara O?","expected":14},{"en":"Shallow Beach","es":"Cala Chica","expected":5},{"en":"Mt. Moonview","es":"Monte Selene","expected":6},{"en":"Echo Cave","es":"Cueva del Eco","expected":11},{"en":"Power Plant","es":"Central Energía","expected":6},{"en":"Crater","es":"Cráter","expected":7},{"en":"Mt. Deepgreen","es":"Monte Verderol","expected":12},{"en":"Wild Plains","es":"Pradera Salvaje","expected":13},{"en":"Serene Sea","es":"Mar Sereno","expected":4},{"en":"Jungle","es":"Selva","expected":13},{"en":"Mystic Lake","es":"Lago Místico","expected":4},{"en":"Waterfall Lake","es":"Lago Cascada","expected":4},{"en":"Flyaway Forest","es":"Bosque Nido","expected":12},{"en":"Energetic Forest","es":"Bosque Elemental","expected":15},{"en":"Mushroom Forest","es":"Bosque de Setas","expected":7},{"en":"Mist-Rise Forest","es":"Bosque Brumoso","expected":14},{"en":"Scorched Plains","es":"Tierra Quemada","expected":10},{"en":"Overgrown Forest","es":"Bosque Crecido","expected":9},{"en":"Mt. Cleft","es":"Monte Partido","expected":9},{"en":"Transform Forest","es":"Bosque Transform","expected":6},{"en":"Magnetic Quarry","es":"Mina Magnética","expected":3},{"en":"Safari","es":"Sabana","expected":15},{"en":"Bountiful Sea","es":"Mar Rico","expected":9},{"en":"Treasure Sea","es":"Mar del Tesoro","expected":10},{"en":"Dragon Cave","es":"Cueva Dragón","expected":3},{"en":"Deep-Sea Floor","es":"Fosa Abisal","expected":12}];
+const RA_GAME='https://retroachievements.org/game/17492';
+// No modifica los datos de reclutamiento. Las insignias se guardan por separado.
+const RA_BADGE_KEY='pmd-blue-ra-badges-v1';
+let raBadges={};try{raBadges=JSON.parse(localStorage.getItem(RA_BADGE_KEY)||'{}')||{};}catch(e){}
+raBadges['Ice Floe Beach']={badge:'183702',id:'163334'};
+function badgeUrl(area){return raBadges[area]?.badge?'https://media.retroachievements.org/Badge/'+encodeURIComponent(raBadges[area].badge)+'.png':'';}
+function achievementUrl(area){return raBadges[area]?.id?'https://retroachievements.org/achievement/'+raBadges[area].id:RA_GAME;}
+// Busca las insignias auténticas mediante una vista pública de texto de RetroAchievements.
+// Si el servicio no está disponible, se puede introducir la URL original manualmente.
+let raLoading=false;
+async function fetchPublicText(url){
+ const r=await fetch('https://r.jina.ai/https://retroachievements.org/'+url,{signal:AbortSignal.timeout(12000)});
+ if(!r.ok)throw Error('Badge metadata unavailable');return await r.text();
+}
+async function resolveRABadges(){
+ if(raLoading)return;raLoading=true;
+ try{
+  const page=await fetchPublicText('game/17492');
+  const lines=page.split('\n');
+  for(const area of RA_AREAS){
+   if(raBadges[area.en]?.badge)continue;
+   const needle='Recruitment Drive in '+area.en;
+   const idx=lines.findIndex(x=>x.includes(needle)&&x.includes('/achievement/'));
+   if(idx<0)continue;
+   const match=lines[idx].match(/https?:\/\/retroachievements\.org\/achievement\/(\d+)/);
+   if(match)raBadges[area.en]={...(raBadges[area.en]||{}),id:match[1]};
+  }
+  const missing=RA_AREAS.filter(a=>raBadges[a.en]?.id&&!raBadges[a.en]?.badge);
+  for(let i=0;i<missing.length;i+=4){
+   await Promise.all(missing.slice(i,i+4).map(async a=>{
+    try{
+     const body=await fetchPublicText('achievement/'+raBadges[a.en].id);
+     const match=body.match(/(?:https?:\/\/media\.retroachievements\.org)?\/Badge\/(\d+)(?:_lock)?\.png/);
+     if(match)raBadges[a.en].badge=match[1];
+    }catch(e){}
+   }));
+   localStorage.setItem(RA_BADGE_KEY,JSON.stringify(raBadges));
+   if(raMode)renderRA();
+  }
+ }catch(e){}finally{raLoading=false;}
+}
+function setBadgeManually(area){
+ const es=lang!=='en';
+ const input=prompt(es?'Pega la URL de la insignia de RetroAchievements para '+area+':':'Paste the RetroAchievements badge image URL for '+area+':',badgeUrl(area));
+ if(input===null)return;
+ const m=input.trim().match(/^https:\/\/media\.retroachievements\.org\/Badge\/(\d+)\.png$/i);
+ if(!m){alert(es?'URL no válida. Usa una dirección como https://media.retroachievements.org/Badge/183702.png':'Invalid URL. Use a link like https://media.retroachievements.org/Badge/183702.png');return;}
+ raBadges[area]={...(raBadges[area]||{}),badge:m[1]};
+ localStorage.setItem(RA_BADGE_KEY,JSON.stringify(raBadges));renderRA();
+}
+
+let raMode=false;
+function renderRA(){
+ const en=lang==='en';
+ const records=RA_AREAS.map(a=>{
+  const members=pokemon.filter(p=>areaFor(p)===a.es);
+  const owned=members.filter(p=>recruited.has(p.id));
+  return {...a,members,owned,remaining:members.filter(p=>!recruited.has(p.id)),pct:members.length?owned.length/members.length:0};
+ });
+ const completed=records.filter(a=>a.remaining.length===0).length;
+ $('raTotal').textContent=en?`${completed} / ${records.length} area achievements ready`:`${completed} / ${records.length} logros de zonas preparados`;
+ $('raModeHint').textContent=en?'Progress calculated from your Pokédex marks':'Progreso calculado con tus Pokémon marcados';
+ $('raDisclaimer').textContent=en?'Local checklist, not synced with RetroAchievements. The official achievement may require Pokémon to be recruited simultaneously. Click an image to open its official achievement; use the edit button to add a missing badge.':'Seguimiento local, sin sincronización con RetroAchievements. Los logros pueden exigir tener todos los Pokémon a la vez. Pulsa una insignia para abrir su logro oficial; usa el botón de edición si falta alguna imagen.';
+ const sort=$('raSort').value,filter=$('raFilter').value;
+ let list=records.filter(a=>filter==='all'||(filter==='done'?a.remaining.length===0:a.remaining.length>0));
+ if(sort==='name')list.sort((a,b)=>(en?a.en:a.es).localeCompare(en?b.en:b.es,lang));
+ else if(sort==='percent')list.sort((a,b)=>b.pct-a.pct||a.remaining.length-b.remaining.length);
+ else list.sort((a,b)=>a.remaining.length-b.remaining.length||b.pct-a.pct);
+ $('raList').innerHTML=list.map(a=>{
+ const name=en?a.en:a.es;
+ const mismatch=a.members.length!==a.expected;
+ const missing=a.remaining.map(p=>`<button type="button" class="ra-jump" data-pokemon="${p.id}" title="${esc(p.name)}">${esc(p.name)}</button>`).join('');
+ const color=zoneColors[a.es]||'#a9b3c8';
+ const img=badgeUrl(a.en);
+ const badge=img?`<img src="${img}" alt="${esc(a.en)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ra-badge-fallback" style="display:none">RA</span>`:`<span class="ra-badge-fallback">RA</span>`;
+ return `<section class="ra-ach ${a.remaining.length===0?'complete':''}" style="--zone-color:${color}"><div class="ra-ach-head"><a class="ra-badge" href="${achievementUrl(a.en)}" target="_blank" rel="noopener noreferrer" title="${en?'Open official achievement':'Abrir logro oficial'}">${badge}</a><button type="button" class="ra-edit-badge" data-area="${esc(a.en)}" title="${en?'Set badge URL':'Añadir URL de insignia'}" style="padding:4px 7px;font-size:12px">✎</button><div><div class="ra-title">${esc(name)}</div><div class="ra-small">${a.owned.length}/${a.members.length} · ${Math.round(a.pct*100)}% ${a.remaining.length===0?'✓':''}</div></div></div><div class="ra-track"><div class="ra-fill" style="width:${a.pct*100}%"></div></div><div class="ra-small">${a.remaining.length===0?(en?'All recruited in checklist':'Todos reclutados en la lista'):(en?`${a.remaining.length} missing`:`Faltan ${a.remaining.length}`)}</div>${mismatch?`<div class="ra-small">⚠ ${en?'Official achievement requires':'El logro oficial pide'} ${a.expected} · ${en?'current list has':'lista actual'} ${a.members.length}</div>`:''}<div class="ra-missing">${missing}</div></section>`;
+ }).join('');
+}
+function setRAMode(on){raMode=on;$('raPanel').classList.toggle('active',on);$('dexPanel').style.display=on?'none':'';$('raToggle').classList.toggle('active',on);$('raToggle').textContent=on?(lang==='en'?'← Pokédex view':'← Volver a Pokédex'):(lang==='en'?'🏆 RetroAchievements mode':'🏆 Modo RetroAchievements');if(on){renderRA();resolveRABadges();}}
+$('raToggle').addEventListener('click',()=>setRAMode(!raMode));
+$('raSort').addEventListener('change',renderRA);$('raFilter').addEventListener('change',renderRA);
+$('raList').addEventListener('click',e=>{const edit=e.target.closest('.ra-edit-badge');if(edit){setBadgeManually(edit.dataset.area);return;}const b=e.target.closest('.ra-jump');if(!b)return;const p=pokemon.find(p=>p.id===Number(b.dataset.pokemon));if(!p)return;setRAMode(false);$('search').value=p.name;$('filter').value='all';$('zoneFilter').value='all';render();$('grid').scrollIntoView({behavior:'smooth'});});
+
+function stats(){let n=recruited.size,p=pokemon.length?Math.round(n/pokemon.length*100):0;$('doneCount').textContent=n;$('totalCount').textContent=pokemon.length;$('percent').textContent=p+'%';$('bar').style.width=p+'%';}
+const ui={
+ es:{heading:'🔎 Pokédex de rescate',subtitle:'Pokémon Mundo Misterioso: Equipo de rescate azul · Marca los que ya has reclutado.',recruited:'Reclutados',total:'Entradas de la Pokédex',completed:'Completado',search:'Buscar Pokémon por nombre o número…',all:'Todos los Pokémon',pending:'Pendientes',done:'Reclutados',number:'Orden: número',name:'Orden: nombre',pendingFirst:'Pendientes primero',zone:'Zona de recreo',allZones:'Todas las zonas de recreo',reset:'Reiniciar marcas',copies:'Copias',recruitedHint:'Reclutado · clic para desmarcar',pendingHint:'Pendiente · clic para marcar',legendary:'LEGENDARIO',form:'FORMA',noResults:'No hay Pokémon que coincidan con la búsqueda.',area:'Zona de recreo',location:'Localización',baseRate:'Tasa base',locationRecruit:'Localización de reclutamiento',note:'Nota: la tasa real puede variar con el nivel y el lazo amistad.',guide:'Para la mazmorra y la tasa de reclutamiento, consulta la guía completa enlazada al pie de la página.',resetConfirm:'¿Seguro que quieres borrar todas las marcas de reclutamiento?',footer:'Las marcas se guardan en este navegador. Retratos: <a href="https://sprites.pmdcollab.org/#/" target="_blank" rel="noreferrer">PMD Sprite Repository</a> (requieren internet; créditos a sus artistas). Zonas de recreo: <a href="https://www.guiasnintendo.com/0_NINTENDO_DS/Pokemon_mundo_misterioso/Pokemon_mundo_misterioso_sp/pokemon2.html" target="_blank" rel="noreferrer">Guías Nintendo</a>. Colores orientativos. <a href="https://pokemon.fandom.com/es/wiki/Zonas_de_recreo" target="_blank" rel="noreferrer">Imágenes y descripciones de las zonas</a>.'},
+ en:{heading:'🔎 Rescue Team Pokédex',subtitle:'Pokémon Mystery Dungeon: Blue Rescue Team · Track the Pokémon you have recruited.',recruited:'Recruited',total:'Pokédex entries',completed:'Completed',search:'Search Pokémon by name or number…',all:'All Pokémon',pending:'Not recruited',done:'Recruited',number:'Sort: Pokédex number',name:'Sort: name',pendingFirst:'Not recruited first',zone:'Friend Area',allZones:'All Friend Areas',reset:'Reset progress',copies:'Copies',recruitedHint:'Recruited · click to unmark',pendingHint:'Not recruited · click to mark',legendary:'LEGENDARY',form:'FORM',noResults:'No Pokémon match your search.',area:'Friend Area',location:'Location',baseRate:'Base recruit rate',locationRecruit:'Recruitment location',note:'Note: actual recruitment chance may change with level and Friend Bow.',guide:'For dungeon locations and recruitment rates, see the complete guide linked at the bottom.',resetConfirm:'Are you sure you want to clear all recruitment marks?',footer:'Your progress is saved in this browser. Portraits: <a href="https://sprites.pmdcollab.org/#/" target="_blank" rel="noreferrer">PMD Sprite Repository</a> (internet required; credits to the artists). Friend Area data: <a href="https://www.guiasnintendo.com/0_NINTENDO_DS/Pokemon_mundo_misterioso/Pokemon_mundo_misterioso_sp/pokemon2.html" target="_blank" rel="noreferrer">Guías Nintendo</a>. Area colors are illustrative. <a href="https://pokemon.fandom.com/es/wiki/Zonas_de_recreo" target="_blank" rel="noreferrer">Friend Area images and descriptions</a>.'}
+};
+const zoneEnglish={
+ 'Pradera Encanto':'Beau Plains','Monte Partido':'Mt. Cleft','Charca Tortuga':'Turtleshell Pond','Bosque Brumoso':'Mist-Rise Forest','Bosque Nido':'Flyaway Forest','Pradera Salvaje':'Wild Plains','Campo Terroso':'Ravaged Field','Bosque Elemental':'Energetic Forest','Desierto Horno':'Furnace Desert','Sabana':'Safari','Monte Selene':'Mt. Moonview','Montes Oscuros':'Darkness Ridge','Pradera Celeste':'Sky Blue Plains','Cueva del Eco':'Echo Cave','Selva':'Jungle','Bosque de Setas':'Mushroom Forest','Bosque Secreto':'Secretive Forest','Cueva Granito':'Boulder Cave','Tierra Quemada':'Scorched Plains','Charca Renacuajo':'Tadpole Pond','Vieja Central':'Decrepit Lab','Monte Disciplina':'Mt. Discipline','Mar Rico':'Bountiful Sea','Monte Verderol':'Mt. Green','Central Energía':'Power Plant','Playa Cubito':'Ice Floe Beach','Pantano Ponzoña':'Poison Swamp','Cala Chica':'Shallow Beach','Mar del Tesoro':'Treasure Sea','Río Manso':'Rub-a-Dub River','Bosque Crecido':'Overgrown Forest','Caverna Gélida':'Frigid Cavern','Cráter':'Crater','Lago Cascada':'Waterfall Lake','Lago Místico':'Mystic Lake','Bosque Transform':'Evolution Forest','Fosa Abisal':'Deep-Sea Floor','Vieja Reliquia':'Ancient Relic','Isla Legendaria':'Legendary Island','Cueva Enigmática':'Cryptic Cave','Isla Final':'Final Island','Prado del Trueno':'Thunder Meadow','Ciénaga Maní':'Peanut Swamp','Mar Sereno':'Serene Sea','Campo Sagrado':'Sacred Field','Corriente Marina':'Deep-Sea Current','Pico Arco Iris':'Rainbow Peak','Bosque Sanador':'Healing Forest','Cueva Dragón':'Dragon Cave','Mina Magnética':'Magnetic Quarry','Isla Sureña':'Southern Island','Cueva Submarina':'Seafloor Cave','Caldera':'Volcanic Pit','Mirador Estratos':'Stratos Lookout','Isla Recluida':'Enclosed Island','Vieja Cámara AN':'Ancient Chamber AN','Vieja Cámara O?':'Ancient Chamber O?','Vieja Cámara AN / Vieja Cámara O':'Ancient Chamber AN / Ancient Chamber O'};
+const legendaryEnglish={144:'Frosty Grotto · final area, 5F',145:'Mt. Thunder Peak · 3F',146:'Mt. Blaze Peak · 3F',150:'Western Cave · 99F',151:'Buried Relic · floors 36–99',243:'Lightning Field · 30F',244:'Fiery Field · 30F',245:'Northwind Field · 30F',249:'Silver Trench · 99F',250:'Mt. Faraway · 40F',251:'Purity Forest · complete the dungeon (98F/99F, depending on guide)',377:'Buried Relic · 15F',378:'Buried Relic · 25F',379:'Buried Relic · 35F',380:'Pokémon Square · after Pitfall Valley',381:'Pokémon Square · after Pitfall Valley',382:'Stormy Sea · 40F',383:'Magma Cavern Pit · 3F',384:'Sky Tower Summit · 9F',385:'Wish Cave · 99F',386:'Meteor Cave · 20F'};
+function areaFor(p){return p.form?unownArea(p.form):zoneById[p.id]||'';}
+function areaName(area){return lang==='en'?(zoneEnglish[area]||area):area;}
+function applyLanguage(){const t=ui[lang];document.documentElement.lang=lang;$('language').value=lang;$('heading').textContent=t.heading;$('subtitle').textContent=t.subtitle;$('recruitedLabel').textContent=t.recruited;$('totalLabel').textContent=t.total;$('completedLabel').textContent=t.completed;$('search').placeholder=t.search;[['filter',[t.all,t.pending,t.done]],['sort',[t.number,t.name,t.pendingFirst,t.zone]]].forEach(([id,labels])=>[...$(id).options].forEach((o,i)=>o.textContent=labels[i]));$('zoneFilter').options[0].textContent=t.allZones;[...$('zoneFilter').options].slice(1).forEach(o=>o.textContent=areaName(o.value));$('reset').textContent=t.reset;$('footerText').innerHTML=t.footer;render();}
+const recruitmentLocations={"1":{"rows":[["Joyous Tower","1 - 5","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Bulbasaur"},"2":{"rows":[["Western Cave","19 - 27","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ivysaur"},"3":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Venusaur"},"4":{"rows":[["Fiery Field","5 - 8","39"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Charmander"},"5":{"rows":[["Fiery Field","26 - 29","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Charmeleon"},"6":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Charizard"},"7":{"rows":[["Waterfall Pond","8 - 12","26"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Squirtle"},"8":{"rows":[["Northwind Field","27 - 29","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wartortle"},"9":{"rows":[["Team Hydro (Dojo)","3","38"],["Western Cave","89 - 98","38"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Blastoise"},"10":{"rows":[["Wish Cave","2 - 4","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Caterpie"},"11":{"rows":[["Joyous Tower","7 - 8","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Metapod"},"12":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Butterfree"},"13":{"rows":[["Joyous Tower","28 - 34","8"],["Mt. Thunder","1 - 4","8"],["Oddity Cave","1 - 8","8"],["Silent Chasm","1 - 6","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Weedle"},"14":{"rows":[["Joyous Tower","9 - 13","9"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kakuna"},"15":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Beedrill"},"16":{"rows":[["Howling Forest","8 - 13","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pidgey"},"17":{"rows":[["Mt. Thunder","2 - 5","11"],["Oddity Cave","5","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pidgeotto"},"18":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pidgeot"},"19":{"rows":[["Thunderwave Cave","1 - 3","3"],["Wish Cave","5 - 7","3"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Rattata"},"20":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Raticate"},"21":{"rows":[["Mt. Steel","1 - 4","4"],["Pitfall Valley","4 - 8","34"],["Remains Island","9 - 13","34"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Spearow"},"22":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Fearow"},"23":{"rows":[["Western Cave","3 - 5","33"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ekans"},"24":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Arbok"},"25":{"rows":[["Lightning Field","6 - 10","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pikachu"},"26":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Raichu"},"27":{"rows":[["Buried Relic","36 - 59","30"],["Desert Region","1 - 6","30"],["Joyous Tower","68 - 73","20"],["Magma Cavern","1 - 6","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sandshrew"},"28":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sandslash"},"29":{"rows":[["Thunderwave Cave","1 - 3","4"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidoran%E2%99%80"},"30":{"rows":[["Lapis Cave","4 - 8","15"],["Wish Cave","47 - 50","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidorina"},"31":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidoqueen"},"32":{"rows":[["Mt. Thunder","1 - 4","12"],["Oddity Cave","1 - 4","12"],["Wish Cave","33 - 37","12"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidoran%E2%99%82"},"33":{"rows":[["Lapis Cave","4 - 8","15"],["Wish Cave","47 - 50","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidorino"},"34":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nidoking"},"35":{"rows":[["Joyous Tower","9 - 14","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Clefairy"},"36":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Clefable"},"37":{"rows":[["Fiery Field","1 - 4","32"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Vulpix"},"38":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ninetales"},"39":{"rows":[["Joyous Tower","1 - 3","2"],["Wish Cave","1 - 4","2"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Jigglypuff"},"40":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wigglytuff"},"41":{"rows":[["Lapis Cave","1 - 3","17"],["Murky Cave","1 - 5","17"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Zubat"},"42":{"rows":[["Buried Relic","1 - 4","10"],["Lapis Cave","11 - 14","10"],["Murky Cave","46 - 50","10"],["Wish Cave","46 - 50","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Golbat"},"43":{"rows":[["Sinister Woods","1 - 4","7"],["Wyvern Hill","13 - 20","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Oddish"},"44":{"rows":[["Silent Chasm","1 - 9","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gloom"},"45":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Vileplume"},"46":{"rows":[["Silent Chasm","7 - 9","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Paras"},"47":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Parasect"},"48":{"rows":[["Murky Cave","1 - 5","17"],["Uproar Forest","1 - 5","17"],["Western Cave","1 - 3","34"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Venonat"},"49":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Venomoth"},"50":{"rows":[["Joyous Tower","4 - 6","5"],["Southern Cavern","1 - 7","33"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Diglett"},"51":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dugtrio"},"52":{"rows":[["Western Cave","3 - 6","29"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Meowth"},"53":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Persian"},"54":{"rows":[["Joyous Tower","9 - 12","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Psyduck"},"55":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Golduck"},"56":{"rows":[["Uproar Forest","8 - 10","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mankey"},"57":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Primeape"},"58":{"rows":[["Mt. Thunder","9 - 10 Peak 1 - 2","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Growlithe"},"59":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Arcanine"},"60":{"rows":[["Northwind Field","1 - 4","50"],["Silent Chasm","5 - 9","10"],["Waterfall Pond","1 - 5","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Poliwag"},"61":{"rows":[["Northwind Field","10 - 16","28"],["Waterfall Pond","9 - 13","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Poliwhirl"},"62":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Poliwrath"},"63":{"rows":[["Buried Relic","10 20 30","16"],["Solar Cave","1 - 8","16"],["Wish Cave","38 - 42","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Abra"},"64":{"rows":[["Buried Relic","40 - 49","30"],["Solar Cave","13 - 20","30"],["Wish Cave","46 - 50","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kadabra"},"65":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Alakazam"},"66":{"rows":[["Buried Relic","4 - 8","22"],["Wish Cave","17 - 25","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Machop"},"67":{"rows":[["Buried Relic","80 - 87","24"],["Fiery Field","17 - 25","24"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Machoke"},"68":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Machamp"},"69":{"rows":[["Wish Cave","1 - 3","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Bellsprout"},"70":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Weepinbell"},"71":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Victreebel"},"72":{"rows":[["Fantasy Strait","1 - 9","27"],["Grand Sea","1 - 9","25"],["Marvelous Sea","1 - 9","27"],["Silver Trench","1 - 9","25"],["Stormy Sea","1 - 8","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tentacool"},"73":{"rows":[["Grand Sea","21 - 30","33"],["Silver Trench","35 - 44","33"],["Stormy Sea","31 - 39","33"],["Team Constrictor (Dojo)","3","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tentacruel"},"74":{"rows":[["Buried Relic","16 - 20","27"],["Mt. Steel","5 - 8","5"],["Southern Cavern","1 - 6","27"],["Wish Cave","12 - 14","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Geodude"},"75":{"rows":[["Buried Relic","74 - 79","35"],["Joyous Tower","68 - 73","22"],["Magma Cavern","5 - 10","22"],["Southern Cavern","25 - 36","35"],["Team Rumblerock (Dojo)","3","22"],["Wish Cave","72 - 75","22"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Graveler"},"76":{"rows":[["Buried Relic","91 - 99","29"],["Joyous Tower","74 - 79","15"],["Magma Cavern","15 - 20","15"],["Mt. Faraway","10 - 19","15"],["Southern Cavern","40 - 50","29"],["Team Rumblerock","3","15"],["Wish Cave","76 - 79","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Golem"},"77":{"rows":[["Joyous Tower","57 - 59","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ponyta"},"78":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Rapidash"},"79":{"rows":[["Fantasy Strait","6 - 14","25"],["Far-off Sea","6 - 14","25"],["Grand Sea","6 - 14","25"],["Marvelous Sea","6 - 14","25"],["Silver Trench","6 - 14","25"],["Stormy Sea","11 - 19","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slowpoke"},"80":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slowbro"},"81":{"rows":[["Lightning Field","1 - 7","25"],["Wish Cave","1 - 3","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magnemite"},"82":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magneton"},"83":{"rows":[["Joyous Tower","23 - 27","10"],["Pitfall Valley","1 - 6","30"],["Remains Island","1 - 6","30"],["Silent Chasm","1 - 3","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Farfetch'd"},"84":{"rows":[["Great Canyon","1 - 4","14"],["Joyous Tower","35 - 39","14"],["Pitfall Valley","7 - 12","25"],["Remains Island","7 - 12","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Doduo"},"85":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dodrio"},"86":{"rows":[["Fantasy Strait","6 - 14","30"],["Far-off Sea","6 - 14","18"],["Marvelous Sea","6 - 14","30"],["Mt. Freeze","3 - 7","18"],["Silver Trench","6 - 14","30"],["Stormy Sea","9 - 14","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Seel"},"87":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dewgong"},"88":{"rows":[["Fantasy Strait","20 - 29","32"],["Far-off Sea","20 - 29","20"],["Joyous Tower","80 - 85","25"],["Magma Cavern","15 - 21","20"],["Marvelous Sea","20","32"],["Murky Cave","3 - 6","20"],["Silver Trench","20 - 29","32"],["Stormy Sea","20 - 29","32"],["Wish Cave","80 - 85","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Grimer"},"89":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Muk"},"90":{"rows":[["Fantasy Strait","1 - 8","25"],["Far-off Sea","1 - 8","25"],["Marvelous Sea","1 - 8","25"],["Silver Trench","1 - 9","20"],["Stormy Sea","1 - 8","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shellder"},"91":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cloyster"},"92":{"rows":[["Buried Relic","9 - 14","23"],["Darknight Relic","1 - 6","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gastly"},"93":{"rows":[["Buried Relic","82 - 93","25"],["Darknight Relic","7 - 11","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Haunter"},"94":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gengar"},"95":{"rows":[["Magma Cavern","21 - 23 Pit 1","30"],["Southern Cavern","40 - 50","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Onix"},"96":{"rows":[["Buried Relic","9 - 14","35"],["Solar Cave","1 - 5","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Drowzee"},"97":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hypno"},"98":{"rows":[["Fantasy Strait","15 - 24","32"],["Far-off Sea","1 - 10","32"],["Grand Sea","15 - 20","32"],["Silver Trench","15 - 24","32"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Krabby"},"99":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kingler"},"100":{"rows":[["Thunderwave Cave","3 - 5","3"],["Wish Cave","8 - 10","3"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Voltorb"},"101":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Electrode"},"102":{"rows":[["Howling Forest","14","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Exeggcute"},"103":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Exeggutor"},"104":{"rows":[["Southern Cavern","5 - 10","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cubone"},"105":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Marowak"},"106":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hitmonlee"},"107":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hitmonchan"},"108":{"rows":[["Western Cave","37 - 44","36"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lickitung"},"109":{"rows":[["Joyous Tower","65 - 70","20"],["Sky Tower","9 - 16","24"],["Wish Cave","71 - 75","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Koffing"},"110":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Weezing"},"111":{"rows":[["Buried Relic","61 - 73","16"],["Frosty Forest","Grotto 1 - 4","16"],["Joyous Tower","58 - 61","16"],["Southern Cavern","31 - 39","30"],["Wish Cave","58 - 61","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Rhyhorn"},"112":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Rhydon"},"113":{"rows":[["Joyous Tower","50 60 77","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Chansey"},"114":{"rows":[["Joyous Tower","47 - 50","14"],["Lapis Cave","9 - 12","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tangela"},"115":{"rows":[["Western Cave","13 - 19","36"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kangaskhan"},"116":{"rows":[["Fantasy Strait","10 - 20","29"],["Grand Sea","10 - 20","29"],["Silver Trench","10 - 20","29"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Horsea"},"117":{"rows":[["Fantasy Strait","30","20"],["Grand Sea","27 - 30","20"],["Silver Trench","30 - 39","20"],["Stormy Sea","30 - 39","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Seadra"},"118":{"rows":[["Waterfall Pond","1 - 5","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Goldeen"},"119":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Seaking"},"120":{"rows":[["Fantasy Strait","15 - 25","28"],["Grand Sea","15 - 25","28"],["Silver Trench","15 - 25","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Staryu"},"121":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Starmie"},"122":{"rows":[["Buried Relic","50 - 69","29"],["Solar Cave","7 - 12","29"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mr._Mime"},"123":{"rows":[["Joyous Tower","15 - 18","10"],["Pitfall Valley","13 - 18","32"],["Remains Island","13 - 19","32"],["Sinister Woods","8 - 11","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Scyther"},"124":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Jynx"},"125":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Electabuzz"},"126":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magmar"},"127":{"rows":[["Joyous Tower","9 - 11","6"],["Mt. Steel","7 - 8","6"],["Western Cave","21 - 28","29"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pinsir"},"128":{"rows":[["Great Canyon","10 - 12","15"],["Joyous Tower","41 - 44","15"],["Western Cave","10 - 16","34"],["Wish Cave","36 - 43","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tauros"},"129":{"rows":[["Waterfall Pond","7 - 11","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magikarp"},"130":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gyarados"},"131":{"rows":[["Far-off Sea","45 - 50","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lapras"},"132":{"rows":[["Buried Relic","16 - 24 26 - 34","25"],["Fiery Field","10 - 20","40"],["Frosty Forest","4 - 9","25"],["Joyous Tower","53 - 64","25"],["Oddity Cave","1 - 15","25"],["Wish Cave","53 - 64","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ditto"},"133":{"rows":[["Joyous Tower","12 - 17","9"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Eevee"},"134":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Vaporeon"},"135":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Jolteon"},"136":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Flareon"},"137":{"rows":[["Buried Relic","5 - 10","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Porygon"},"138":{"rows":[["Fantasy Strait","1 - 9","30"],["Far-off Sea","1 - 9","30"],["Marvelous Sea","1 - 9","30"],["Silver Trench","1 - 9","25"],["Stormy Sea","1 - 9","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Omanyte"},"139":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Omastar"},"140":{"rows":[["Fantasy Strait","5 - 13","28"],["Grand Sea","5 - 13","28"],["Silver Trench","5 - 13","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kabuto"},"141":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kabutops"},"142":{"rows":[["Joyous Tower","90 - 99","30"],["Pitfall Valley","15 - 25","25"],["Sky Tower","21 - 25 Summit 1 - 8","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Aerodactyl"},"143":{"rows":[["Howling Forest","11 - 14","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Snorlax"},"144":{"rows":[["Frosty Forest","Grotto 5","33 53 post-credits"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Articuno"},"145":{"rows":[["Mt. Thunder","Peak 3","25 45 post-credits"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Zapdos"},"146":{"rows":[["Mt. Blaze","Peak 3","32 52 post-credits"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Moltres"},"147":{"rows":[["Far-off Sea","50 - 59","30"],["Silver Trench","50 - 59","30"],["Wyvern Hill","1 - 5","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dratini"},"148":{"rows":[["Wyvern Hill","12 - 20","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dragonair"},"149":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dragonite"},"150":{"rows":[["Western Cave","99","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mewtwo"},"151":{"rows":[["Buried Relic","36 - 98","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mew"},"152":{"rows":[["Joyous Tower","8 - 11","9"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Chikorita"},"153":{"rows":[["Western Cave","20 - 27","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Bayleef"},"154":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Meganium"},"155":{"rows":[["Joyous Tower","13 - 17","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cyndaquil"},"156":{"rows":[["Fiery Field","15 - 24","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Quilava"},"157":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Typhlosion"},"158":{"rows":[["Waterfall Pond","6 - 10","29"],["Wyvern Hill","6 - 11","29"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Totodile"},"159":{"rows":[["Mt. Faraway","30 - 39","28"],["Northwind Field","27 - 29","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Croconaw"},"160":{"rows":[["Team Hydro (Dojo)","3","32"],["Western Cave","49 - 58","32"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Feraligatr"},"161":{"rows":[["Purity Forest","19 - 21","6"],["Sinister Woods","3 - 6","6"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sentret"},"162":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Furret"},"163":{"rows":[["Buried Relic","5 - 9","36"],["Northern Range","1 - 5","36"],["Remains Island","1 - 3","6"],["Sinister Woods","10 - 12","6"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hoothoot"},"164":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Noctowl"},"165":{"rows":[["Joyous Tower","22 - 25","7"],["Pitfall Valley","1 - 6","25"],["Remains Island","1 - 6","25"],["Sinister Woods","7 - 10","7"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ledyba"},"166":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ledian"},"167":{"rows":[["Joyous Tower","27 - 32","11"],["Northern Range","6 - 11","34"],["Remains Island","16 - 20","11"],["Silent Chasm","6 - 9","11"],["Wish Cave","26 - 32","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Spinarak"},"168":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ariados"},"169":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Crobat"},"170":{"rows":[["Silver Trench","70 - 79","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Chinchou"},"171":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lanturn"},"172":{"rows":[["Joyous Tower","3 - 6","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pichu"},"173":{"rows":[["Wish Cave","1 - 4","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cleffa"},"174":{"rows":[["Joyous Tower","40 - 46","15"],["Western Cave","10 - 13","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Igglybuff"},"175":{"rows":[["Wish Cave","5 - 10","7"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Togepi"},"176":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Togetic"},"177":{"rows":[["Solar Cave","1 - 5","20"],["Wish Cave","13 - 17","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Natu"},"178":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Xatu"},"179":{"rows":[["Lightning Field","1 - 5","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mareep"},"180":{"rows":[["Lightning Field","7 - 13","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Flaaffy"},"181":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ampharos"},"182":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Bellossom"},"183":{"rows":[["Wish Cave","4 - 6","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Marill"},"184":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Azumarill"},"185":{"rows":[["Sinister Woods","1 - 4","7"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sudowoodo"},"186":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Politoed"},"187":{"rows":[["Pitfall Valley","4 - 8","8"],["Remains Island","5 - 8","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hoppip"},"188":{"rows":[["Great Canyon","1 - 3","13"],["Joyous Tower","42 - 46","13"],["Pitfall Valley","15 - 20","25"],["Remains Island","15 - 20","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Skiploom"},"189":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Jumpluff"},"190":{"rows":[["Uproar Forest","1 - 6","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Aipom"},"191":{"rows":[["Wish Cave","1 - 3","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sunkern"},"192":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sunflora"},"193":{"rows":[["Pitfall Valley","9 - 15","25"],["Remains Island","9 - 15","25"],["Silent Chasm","1 - 8","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Yanma"},"194":{"rows":[["Sinister Woods","8 - 10","10"],["Waterfall Pond","3 - 6","32"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wooper"},"195":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Quagsire"},"196":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Espeon"},"197":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Umbreon"},"198":{"rows":[["Great Canyon","5 - 7","14"],["Western Cave","1 - 2","29"],["Wish Cave","39 - 42","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Murkrow"},"199":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slowking"},"200":{"rows":[["Darknight Relic","1 - 15","25"],["Murky Cave","13 - 19","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Misdreavus"},"201":{"error":"No se encontró la tabla Locations","url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Unown"},"202":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wobbuffet"},"203":{"rows":[["Solar Cave","1 - 4","26"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Girafarig"},"204":{"rows":[["Joyous Tower","61 - 64","18"],["Mt. Freeze","1 - 5","18"],["Wish Cave","61 - 64","18"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pineco"},"205":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Forretress"},"206":{"rows":[["Great Canyon","1 - 3","13"],["Joyous Tower","43 - 44","13"],["Wish Cave","43 - 44","13"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dunsparce"},"207":{"rows":[["Desert Region","15 - 20","12"],["Joyous Tower","31 - 35","12"],["Mt. Thunder","7 - 10 Peak 1 - 2","12"],["Southern Cavern","15 - 25","22"],["Wish Cave","31 - 35","12"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gligar"},"208":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Steelix"},"209":{"rows":[["Western Cave","1 - 3","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Snubbull"},"210":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Granbull"},"211":{"rows":[["Fantasy Strait","1 - 9","30"],["Grand Sea","1 - 9","30"],["Silver Trench","1 - 9","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Qwilfish"},"212":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Scizor"},"213":{"rows":[["Howling Forest","7 - 11","15"],["Mt. Blaze","5 - 9","15"],["Oddity Cave","6 - 9","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shuckle"},"214":{"rows":[["Great Canyon","7 - 9","14"],["Joyous Tower","39 - 42","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Heracross"},"215":{"rows":[["Buried Relic","1 - 4","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sneasel"},"216":{"rows":[["Joyous Tower","26 - 30","10"],["Silent Chasm","1 - 3","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Teddiursa"},"217":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ursaring"},"218":{"rows":[["Fiery Field","1 - 5","28"],["Mt. Blaze","1 - 12","16"],["Oddity Cave","6 - 10","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slugma"},"219":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magcargo"},"220":{"rows":[["Sinister Woods","1 - 3","8"],["Wish Cave","17 - 19 21 - 23","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Swinub"},"221":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Piloswine"},"222":{"rows":[["Fantasy Strait","5 - 13","27"],["Grand Sea","5 - 13","27"],["Silver Trench","5 - 13","27"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Corsola"},"223":{"rows":[["Fantasy Strait","10 - 19","28"],["Marvelous Sea","10 - 19","28"],["Silver Trench","50 - 59","21"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Remoraid"},"224":{"rows":[["Far-off Sea","55 - 64","30"],["Silver Trench","60 - 69","30"],["Team Constrictor (Dojo)","3","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Octillery"},"225":{"rows":[["Northwind Field","17 - 25","26"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Delibird"},"226":{"rows":[["Grand Sea","30","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mantine"},"227":{"rows":[["Western Cave","40 - 49","55"],["Wish Cave","18 - 19","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Skarmory"},"228":{"rows":[["Howling Forest","1 - 8","18"],["Joyous Tower","25 - 27","11"],["Silent Chasm","5 - 7","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Houndour"},"229":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Houndoom"},"230":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kingdra"},"231":{"rows":[["Great Canyon","1 - 3","14"],["Southern Cavern","10 - 19","31"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Phanpy"},"232":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Donphan"},"233":{"rows":[["Buried Relic","10 - 14 16 - 18","20"],["Joyous Tower","80 - 84","25"],["Wish Cave","80 - 83","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Porygon2"},"234":{"rows":[["Joyous Tower","31 - 36","12"],["Mt. Thunder","5 - 9","9"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Stantler"},"235":{"rows":[["Western Cave","4 - 6","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Smeargle"},"236":{"rows":[["Mt. Steel","5 - 8","6"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tyrogue"},"237":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hitmontop"},"238":{"rows":[["Joyous Tower","21 - 25","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Smoochum"},"239":{"rows":[["Buried Relic","41 - 59","34"],["Lightning Field","15 - 22","34"],["Thunderwave Cave","4 - 5","4"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Elekid"},"240":{"rows":[["Fiery Field","6 - 9","31"],["Joyous Tower","46 - 51 72 - 76","17"],["Mt. Blaze","1 - 5","17"],["Wish Cave","72 - 76","17"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Magby"},"241":{"rows":[["Western Cave","10 20 30 40 50 - 53 60 - 98","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Miltank"},"242":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Blissey"},"243":{"rows":[["Lightning Field","30","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Raikou"},"244":{"rows":[["Fiery Field","30","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Entei"},"245":{"rows":[["Northwind Field","30","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Suicune"},"246":{"rows":[["Southern Cavern","16 - 26","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Larvitar"},"247":{"rows":[["Buried Relic","60 - 70","35"],["Joyous Tower","62 - 66","17"],["Mt. Freeze","3 - 5","17"],["Southern Cavern","37 - 45","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pupitar"},"248":{"rows":[["Western Cave","50 - 60","50"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tyranitar"},"249":{"rows":[["Silver Trench","99","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lugia"},"250":{"rows":[["Mt. Faraway","40","50"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ho-Oh"},"251":{"rows":[["Purity Forest","99","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Celebi"},"252":{"rows":[["Joyous Tower","1 - 4","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Treecko"},"253":{"rows":[["Western Cave","38 - 49","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Grovyle"},"254":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sceptile"},"255":{"rows":[["Joyous Tower","11 - 15","12"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Torchic"},"256":{"rows":[["Fiery Field","22 - 29","26"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Combusken"},"257":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Blaziken"},"258":{"rows":[["Waterfall Pond","1 - 3","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mudkip"},"259":{"rows":[["Mt. Faraway","13 - 18","28"],["Waterfall Pond","10 - 19","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Marshtomp"},"260":{"rows":[["Team Hydro (Dojo)","3","37"],["Western Cave","79 - 88","37"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Swampert"},"261":{"rows":[["Howling Forest","1 - 8","20"],["Thunderwave Cave","1 - 3","3"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Poochyena"},"262":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mightyena"},"263":{"rows":[["Mt. Steel","1 - 5","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Zigzagoon"},"264":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Linoone"},"265":{"rows":[["Joyous Tower","1 - 2","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wurmple"},"266":{"rows":[["Sinister Woods","4 - 6","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Silcoon"},"267":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Beautifly"},"268":{"rows":[["Murky Cave","1 - 2 5 7 - 9 11","8"],["Sinister Woods","4 - 6","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cascoon"},"269":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dustox"},"270":{"rows":[["Waterfall Pond","1 - 3","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lotad"},"271":{"rows":[["Waterfall Pond","13 - 16","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lombre"},"272":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ludicolo"},"273":{"rows":[["Southern Cavern","1 - 9","30"],["Uproar Forest","1 - 9","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Seedot"},"274":{"rows":[["Team Shifty","1 - 3","10"],["Uproar Forest","5 - 9","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nuzleaf"},"275":{"rows":[["Buried Relic","68 - 74","35"],["Team Shifty","3","20"],["Western Cave","12 - 20","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shiftry"},"276":{"rows":[["Joyous Tower","2 - 4","1"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Taillow"},"277":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Swellow"},"278":{"rows":[["Fantasy Strait","1 - 5","23"],["Grand Sea","1 - 5","23"],["Marvelous Sea","1 - 5","23"],["Remains Island","7 - 14","23"],["Silver Trench","1 - 5","23"],["Stormy Sea","1 - 5","23"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wingull"},"279":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Pelipper"},"280":{"rows":[["Wish Cave","11 - 13","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ralts"},"281":{"rows":[["Solar Cave","10 - 15","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kirlia"},"282":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gardevoir"},"283":{"rows":[["Waterfall Pond","4 - 7","24"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Surskit"},"284":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Masquerain"},"285":{"rows":[["Joyous Tower","21 - 25","9"],["Sinister Woods","6 - 12","9"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shroomish"},"286":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Breloom"},"287":{"rows":[["Joyous Tower","18 - 20","8"],["Purity Forest","17 - 20","8"],["Sinister Woods","10 - 12","8"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slakoth"},"288":{"rows":[["Mt. Faraway","10 - 19","45"],["Mt. Freeze","7 - 11","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Vigoroth"},"289":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Slaking"},"290":{"rows":[["Joyous Tower","45 - 49","14"],["Lapis Cave","1 - 4","14"],["Wish Cave","44 - 49","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nincada"},"291":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Ninjask"},"292":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shedinja"},"293":{"rows":[["Buried Relic","4 - 8","20"],["Howling Forest","1 - 8","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Whismur"},"294":{"rows":[["Howling Forest","9 - 14","10"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Loudred"},"295":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Exploud"},"296":{"rows":[["Buried Relic","30 - 34","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Makuhita"},"297":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Hariyama"},"298":{"rows":[["Frosty Forest","1 - 3","11"],["Howling Forest","1 - 4","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Azurill"},"299":{"rows":[["Desert Region","1 - 6","31"],["Frosty Forest","3 - 6","13"],["Oddity Cave","11 - 12","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Nosepass"},"300":{"rows":[["Joyous Tower","24 - 28","22"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Skitty"},"301":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Delcatty"},"302":{"rows":[["Darknight Relic","1 - 15","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sableye"},"303":{"rows":[["Buried Relic","68 - 90","30"],["Magma Cavern","8 - 12","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Mawile"},"304":{"rows":[["Buried Relic","14 16 - 19","35"],["Mt. Steel","1 - 8","6"],["Wish Cave","7 - 10","6"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Aron"},"305":{"rows":[["Frosty Forest","7 - 9","17"],["Joyous Tower","60 - 62","17"],["Oddity Cave","13 - 15","17"],["Wish Cave","62 - 64","17"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lairon"},"306":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Aggron"},"307":{"rows":[["Buried Relic","17 - 22","30"],["Mt. Steel","5 - 8","6"],["Solar Cave","4 - 8","30"],["Wish Cave","11 - 14","6"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Meditite"},"308":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Medicham"},"309":{"rows":[["Lightning Field","1 - 6","12"],["Mt. Thunder","1 - 4","12"],["Oddity Cave","1 - 4","12"],["Wish Cave","26 - 33","12"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Electrike"},"310":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Manectric"},"311":{"rows":[["Joyous Tower","5 - 8","3"],["Lightning Field","7 - 19","30"],["Thunderwave Cave","4 - 5","3"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Plusle"},"312":{"rows":[["Joyous Tower","5 - 8","3"],["Lightning Field","7 - 19","30"],["Thunderwave Cave","4 - 5","3"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Minun"},"313":{"rows":[["Northwind Field","1 - 6","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Volbeat"},"314":{"rows":[["Lapis Cave","5 - 8","15"],["Wish Cave","47 - 52","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Illumise"},"315":{"rows":[["Uproar Forest","4 - 7","16"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Roselia"},"316":{"rows":[["Buried Relic","14 16 - 19","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gulpin"},"317":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Swalot"},"318":{"rows":[["Fantasy Strait","30","27"],["Far-off Sea","30 - 39","27"],["Silver Trench","30 - 39","27"],["Stormy Sea","35 - 39","27"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Carvanha"},"319":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sharpedo"},"320":{"rows":[["Far-off Sea","41 - 50","35"],["Silver Trench","41 - 50","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wailmer"},"321":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wailord"},"322":{"rows":[["Fiery Field","1 - 4","35"],["Mt. Blaze","1 - 6","14"],["Oddity Cave","6","14"],["Wish Cave","53 - 56","14"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Numel"},"323":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Camerupt"},"324":{"rows":[["Fiery Field","9 - 14","33"],["Joyous Tower","57 - 59","15"],["Mt. Blaze","7 - 12","15"],["Oddity Cave","7 - 10","15"],["Wish Cave","57 - 59","15"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Torkoal"},"325":{"rows":[["Howling Forest","1 - 8","13"],["Solar Cave","1 - 5","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Spoink"},"326":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Grumpig"},"327":{"rows":[["Joyous Tower","5 - 7","2"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Spinda"},"328":{"rows":[["Desert Region","1 - 11","35"],["Joyous Tower","21 - 24","11"],["Silent Chasm","6 - 9","11"],["Wish Cave","21 - 28","11"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Trapinch"},"329":{"rows":[["Southern Cavern","12 - 20","30"],["Wyvern Hill","10 - 16","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Vibrava"},"330":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Flygon"},"331":{"rows":[["Joyous Tower","33 - 36","13"],["Mt. Thunder","1 - 4","11"],["Oddity Cave","1 - 4","13"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cacnea"},"332":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cacturne"},"333":{"rows":[["Joyous Tower","53 - 59","18"],["Mt. Freeze","1 - 6","18"],["Pitfall Valley","7 - 12","24"],["Remains Island","7 - 12","24"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Swablu"},"334":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Altaria"},"335":{"rows":[["Mt. Freeze","7 - 12","18"],["Wish Cave","65 - 71","18"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Zangoose"},"336":{"rows":[["Joyous Tower","62 - 69","19"],["Mt. Freeze","13 - 15","19"],["Murky Cave","1 - 5","19"],["Northern Range","20 - 24","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Seviper"},"337":{"rows":[["Joyous Tower","80 - 87","29"],["Mt. Faraway","1 - 5","24"],["Sky Tower","1 - 11","24"],["Solar Cave","8 - 12","24"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lunatone"},"338":{"rows":[["Mt. Faraway","6 - 11","24"],["Sky Tower","12 - 20","24"],["Wish Cave","86 - 89","24"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Solrock"},"339":{"rows":[["Waterfall Pond","1 - 5","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Barboach"},"340":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Whiscash"},"341":{"rows":[["Waterfall Pond","6 - 12","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Corphish"},"342":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Crawdaunt"},"343":{"rows":[["Desert Region","12 - 20","35"],["Mt. Steel","1 - 4","5"],["Southern Cavern","12 - 22","32"],["Wish Cave","11 - 14","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Baltoy"},"344":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Claydol"},"345":{"rows":[["Silver Trench","80 - 89","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Lileep"},"346":{"rows":[["Silver Trench","90 - 98","45"],["Team Constrictor (Dojo)","3","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Cradily"},"347":{"rows":[["Fantasy Strait","14 - 23","26"],["Far-off Sea","14 - 23","26"],["Grand Sea","14 - 23","26"],["Marvelous Sea","14 - 20","26"],["Silver Trench","14 - 23","21"],["Stormy Sea","9 - 17","21"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Anorith"},"348":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Armaldo"},"349":{"rows":[["Waterfall Pond","16 - 19","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Feebas"},"350":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Milotic"},"351":{"rows":[["Mt. Faraway","20 - 29","50"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Castform"},"352":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kecleon"},"353":{"rows":[["Darknight Relic","1 - 5","28"],["Joyous Tower","70 - 75","28"],["Murky Cave","10 - 14","28"],["Sky Tower","1 - 6","28"],["Wish Cave","81 - 84","28"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shuppet"},"354":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Banette"},"355":{"rows":[["Darknight Relic","11 - 15","35"],["Sky Tower","7 - 14","27"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Duskull"},"356":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Dusclops"},"357":{"rows":[["Joyous Tower","86 - 91","30"],["Lightning Field","20 - 29","35"],["Sky Tower","22 - 25 Summit 1 - 8","27"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Tropius"},"358":{"rows":[["Mt. Freeze","7 - 12","22"],["Solar Cave","12 - 17","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Chimecho"},"359":{"rows":[["Northwind Field","28 - 29","45"],["Western Cave","40 - 49","45"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Absol"},"360":{"rows":[["Buried Relic","1 - 4","20"],["Solar Cave","1 - 3","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Wynaut"},"361":{"rows":[["Frosty Forest","8 - 9","20"],["Joyous Tower","50 - 57","20"],["Mt. Faraway","1 - 11","20"],["Oddity Cave","14 - 15","20"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Snorunt"},"362":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Glalie"},"363":{"rows":[["Fantasy Strait","10 - 19","22"],["Far-off Sea","10 - 19","22"],["Marvelous Sea","10 - 19","22"],["Silver Trench","10 - 19","18"],["Stormy Sea","15 - 24","18"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Spheal"},"364":{"rows":[["Far-off Sea","35 - 44","24"],["Silver Trench","25 - 33","22"],["Stormy Sea","34 - 39","22"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Sealeo"},"365":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Walrein"},"366":{"rows":[["Far-off Sea","65 - 75","35"],["Silver Trench","65 - 79","35"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Clamperl"},"367":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Huntail"},"368":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Gorebyss"},"369":{"rows":[["Silver Trench","80 - 89","60"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Relicanth"},"370":{"rows":[["Far-off Sea","45 - 54","30"],["Silver Trench","45 - 54","30"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Luvdisc"},"371":{"rows":[["Joyous Tower","42 - 45","16"],["Lapis Cave","9 - 13","16"],["Wish Cave","46 - 49","16"],["Wyvern Hill","1 - 4","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Bagon"},"372":{"rows":[["Joyous Tower","60 - 64","19"],["Mt. Freeze","1 - 6","19"],["Wish Cave","65 - 69","19"],["Wyvern Hill","9 - 16","37"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Shelgon"},"373":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Salamence"},"374":{"rows":[["Joyous Tower","14 - 16","5"],["Mt. Steel","6 - 8","5"],["Solar Cave","1 - 4","30"],["Wish Cave","15 - 17","5"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Beldum"},"375":{"rows":[["Frosty Forest","Grotto 1 - 4","17"],["Joyous Tower","56 - 61","17"],["Solar Cave","8 - 12","24"],["Wish Cave","62 - 64","17"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Metang"},"376":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Metagross"},"377":{"rows":[["Buried Relic","15","18"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Regirock"},"378":{"rows":[["Buried Relic","25","23"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Regice"},"379":{"rows":[["Buried Relic","35","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Registeel"},"380":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Latias"},"381":{"rows":[],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Latios"},"382":{"rows":[["Stormy Sea","40","25"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Kyogre"},"383":{"rows":[["Magma Cavern","Pit 3","27 37 post-credits"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Groudon"},"384":{"rows":[["Sky Tower","Summit 9","35 45 post-credits"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Rayquaza"},"385":{"rows":[["Wish Cave","99","40"]],"url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Jirachi"},"386":{"error":"No se encontró la tabla Locations","url":"https://mysterydungeonwiki.com/wiki/Rescue_Team:Deoxys"}};
+// Nombres españoles de mazmorras del juego (no traducciones automáticas).
+const dungeonNamesEs={"Buried Relic":"Reliquia Perdida","Darknight Relic":"Ruinas Oscuras","Desert Region":"Gran Desierto","Fantasy Strait":"Paso Fantasía","Far-off Sea":"Mar Lejano","Fiery Field":"Campo de Fuego","Frosty Forest":"Bosque Helado","Grand Sea":"Gran Mar","Great Canyon":"Gran Cañón","Howling Forest":"Bosque Aullador","Joyous Tower":"Torre Regocijo","Lapis Cave":"Mina Lapislázuli","Lightning Field":"Campo Centella","Magma Cavern":"Caverna Magma","Marvelous Sea":"Mar Maravilla","Mt. Blaze":"Monte Ígneo","Mt. Faraway":"Monte Distante","Mt. Freeze":"Monte Escarcha","Mt. Steel":"Monte Acero","Mt. Thunder":"Monte Trueno","Murky Cave":"Cueva Tenebrosa","Northern Range":"Cordillera Norte","Northwind Field":"Campo Ventoso","Oddity Cave":"Cueva Curiosa","Pitfall Valley":"Valle Abismal","Purity Forest":"Bosque Pureza","Remains Island":"Isla Desolada","Silent Chasm":"Sima Silenciosa","Silver Trench":"Fosa Argéntea","Sinister Woods":"Bosque Tétrico","Sky Tower":"Torre del Cielo","Solar Cave":"Cueva Solar","Southern Cavern":"Cueva Meridional","Stormy Sea":"Mar Tormentoso","Thunderwave Cave":"Mina Onda Trueno","Uproar Forest":"Bosque Alboroto","Waterfall Pond":"Estanque Cascada","Western Cave":"Cueva Occidental","Wish Cave":"Cueva Deseo","Wyvern Hill":"Colina Draco","Team Constrictor (Dojo)":"Team Constrictor (Dojo)","Team Hydro (Dojo)":"Team Hydro (Dojo)","Team Rumblerock":"Team Rumblerock","Team Rumblerock (Dojo)":"Team Rumblerock (Dojo)","Team Shifty":"Team Shifty"};
+function dungeonName(name){return lang==='es'?(dungeonNamesEs[name]||name):name;}
+function details(p){const t=ui[lang],zone=areaName(areaFor(p));if(p.form)return `${t.area}: ${zone}\n${t.location}: ${lang==='en'?'Unown Relic':'Reliquia Unown'} · ${lang==='en'?'floors':'pisos'} ${unownFloors[p.form]}\n${t.baseRate}: 1.8%`;
+ const entry=recruitmentLocations[p.id];
+ if(entry && entry.rows && entry.rows.length){
+  const title=lang==='en'?'Recruitable locations':'Lugares donde se puede reclutar';
+  const floorLabel=lang==='en'?'floors':'pisos';
+  const lines=entry.rows.map(r=>`• ${dungeonName(r[0])} · ${floorLabel} ${r[1]}`);
+  return `${t.area}: ${zone}\n${title}:\n${lines.join('\n')}`;
+ }
+ const d=legendaryData[p.id];if(d){let loc=lang==='en'?(legendaryEnglish[p.id]||d[1]):d[1],rate=d[2];if(lang==='en'){rate=rate.replaceAll(',','.').replace('−','-').replace('100% · reclutamiento automático','100% · automatic recruitment').replace('base; requiere bonificaciones','base; bonuses required').replace('base; no se recluta en la primera visita','base; cannot recruit on first visit');}return `${t.area}: ${zone}\n${t.locationRecruit}: ${loc}\n${t.baseRate}: ${rate}\n\n${t.note}`;}
+ return `${t.area}: ${zone}\n\n${t.guide}`;}
+function render(){
+ const t=ui[lang],q=$('search').value.trim().toLocaleLowerCase(),f=$('filter').value,s=$('sort').value,z=$('zoneFilter').value;
+ let list=pokemon.filter(p=>(!q||p.name.toLocaleLowerCase().includes(q)||String(p.id).includes(q))&&(f==='all'||(f==='done'?recruited.has(p.id):!recruited.has(p.id)))&&(z==='all'||areaFor(p)===z));
+ if(s==='name')list.sort((a,b)=>a.name.localeCompare(b.name,lang));else if(s==='pending')list.sort((a,b)=>(recruited.has(a.id)-recruited.has(b.id))||(a.form?201:a.id)-(b.form?201:b.id));else if(s==='zone')list.sort((a,b)=>areaName(areaFor(a)).localeCompare(areaName(areaFor(b)),lang)||a.id-b.id);else list.sort((a,b)=>(a.form?201:a.id)-(b.form?201:b.id)||(a.form||'').localeCompare(b.form||''));
+ $('grid').innerHTML=list.length?list.map(p=>{const done=recruited.has(p.id),leg=legendaryIds.has(p.id);const image=p.form?(p.form==='!'?UNOWN_PUNCTUATION['!']:p.form==='?'?UNOWN_PUNCTUATION['?']:`https://play.pokemonshowdown.com/sprites/gen5/unown${p.form==='A'?'':'-'+(p.form==='S'?'z':p.form==='Z'?'s':p.form.toLowerCase())}.png`):`https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/${String(p.id).padStart(4,'0')}/Normal.png`,zone=areaFor(p),color=zoneColors[zone]||'#a9b3c8';return `<article class="card ${done?'done':''} ${leg?'legendary':''}" style="--zone-color:${color}" data-id="${p.id}" data-tooltip="${esc('No. '+String(p.id).padStart(3,'0')+' · '+p.name+'\n'+details(p))}"><span class="check">${done?(leg?'★':'✓'):''}</span><div class="num">#${String(p.id).padStart(3,'0')}${leg?' · ★ '+t.legendary:''}${p.form?' · '+t.form+' '+p.form:''}</div><img class="portrait" loading="lazy" alt="${esc(p.name)}" src="${image}" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id>386?201:p.id}.png';this.style.imageRendering='pixelated'"><div class="poke-name">${esc(p.name)}</div><div class="zone-tag">${esc(areaName(zone))}</div><div class="hint">${done?t.recruitedHint:t.pendingHint}</div><div class="copy-tools"><button type="button" class="copy-btn" data-delta="-1" aria-label="${lang==='en'?'Remove one copy':'Restar una copia'}">−</button><span class="copy-count">${t.copies}: ${Number(copies[p.id]||0)}</span><button type="button" class="copy-btn" data-delta="1" aria-label="${lang==='en'?'Add one copy':'Añadir una copia'}">+</button></div></article>`}).join(''):`<div class="empty">${t.noResults}</div>`;
+ stats();
+ if(raMode)renderRA();
+}
+$('grid').addEventListener('click',e=>{
+ let copyButton=e.target.closest('.copy-btn');
+ if(copyButton){
+   e.stopPropagation();
+   const card=copyButton.closest('.card'),id=Number(card.dataset.id),delta=Number(copyButton.dataset.delta);
+   copies[id]=Math.max(0,Number(copies[id]||0)+delta);
+   if(copies[id]===0)delete copies[id];
+   saveCopies();render();return;
+ }
+ let c=e.target.closest('.card');if(!c)return;
+ let id=Number(c.dataset.id);recruited.has(id)?recruited.delete(id):recruited.add(id);save();render();
+});
+['search','filter','sort','zoneFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+$('reset').addEventListener('click',()=>{if(confirm(ui[lang].resetConfirm)){recruited.clear();save();render();}});
+$('language').addEventListener('change',e=>{lang=e.target.value;localStorage.setItem(LANG_KEY,lang);applyLanguage();setRAMode(raMode);});
+// La Pokédex puede abrirse incluso si PokéAPI está bloqueada o no hay conexión.
+const NAMES_CACHE_KEY='pmd-blue-rescue-pokemon-names-v1';
+const KNOWN_NAMES={1:'Bulbasaur',4:'Charmander',7:'Squirtle',25:'Pikachu',144:'Articuno',145:'Zapdos',146:'Moltres',150:'Mewtwo',151:'Mew',201:'Unown',243:'Raikou',244:'Entei',245:'Suicune',249:'Lugia',250:'Ho-Oh',251:'Celebi',377:'Regirock',378:'Regice',379:'Registeel',380:'Latias',381:'Latios',382:'Kyogre',383:'Groudon',384:'Rayquaza',385:'Jirachi',386:'Deoxys'};
+function installPokemon(names){
+ pokemon=Array.from({length:386},(_,i)=>({id:i+1,name:names[i]||KNOWN_NAMES[i+1]||`Pokémon #${String(i+1).padStart(3,'0')}`}));
+ pokemon[249].name='Ho-Oh';
+ pokemon[200].name='Unown A';pokemon[200].form='A';
+ unownForms.slice(1).forEach((form,i)=>pokemon.push({id:387+i,name:'Unown '+form,form}));
+ $('totalCount').textContent=pokemon.length;
+ applyLanguage();
+}
+async function init(){
+ for(const area of ['Vieja Cámara AN','Vieja Cámara O?']){
+  if(![...$('zoneFilter').options].some(o=>o.value===area)){
+   const opt=document.createElement('option');opt.value=area;opt.textContent=area;$('zoneFilter').appendChild(opt);
+  }
+ }
+ const zoneSelect=$('zoneFilter');
+ [...new Set(Object.values(zoneById).filter(z=>z!=='Vieja Cámara AN / Vieja Cámara O'))].sort((a,b)=>a.localeCompare(b,'es')).forEach(zone=>{const opt=document.createElement('option');opt.value=zone;opt.textContent=zone;zoneSelect.appendChild(opt);});
+ let cached=[];
+ try{cached=JSON.parse(localStorage.getItem(NAMES_CACHE_KEY)||'[]');if(!Array.isArray(cached)||cached.length!==386)cached=[];}catch(e){}
+ installPokemon(cached);
+ renderRA();
+ try{
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),7000);
+  let r;
+  try{r=await fetch('https://pokeapi.co/api/v2/pokemon?limit=386&offset=0',{signal:controller.signal});}
+  finally{clearTimeout(timeout);}
+  if(!r.ok)throw Error('PokeAPI no disponible');
+  const data=await r.json();
+  if(!data.results||data.results.length!==386)throw Error('Lista incompleta');
+  const names=data.results.map(x=>pretty(x.name));
+  try{localStorage.setItem(NAMES_CACHE_KEY,JSON.stringify(names));}catch(e){}
+  installPokemon(names);
+ }catch(e){
+  // La lista ya está visible. La falta de conexión no borra marcas ni copias.
+  console.info('Pokédex en modo sin conexión: ',e.message);
+ }
+}
+init();
+</script></body></html>
