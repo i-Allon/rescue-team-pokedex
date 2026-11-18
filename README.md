@@ -1,4 +1,4 @@
-# 🔎 Pokémon Mystery Dungeon: Blue Rescue Team — Interactive Pokédex
+# 🔎 Pokémon Mystery Dungeon: Blue Rescue Team & Red Rescue Team — Interactive Pokédex
 
 An interactive Pokédex designed to help players track their recruitment progress in **Pokémon Mystery Dungeon: Blue Rescue Team** (Nintendo DS).
 
