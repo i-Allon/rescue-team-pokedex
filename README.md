@@ -1,8 +1,16 @@
-# 🔎 Pokémon Mystery Dungeon: Blue Rescue Team & Red Rescue Team — Interactive Pokédex
+# 🔎 Pokémon Mystery Dungeon: Blue Rescue Team — Interactive Pokédex
 
 An interactive Pokédex designed to help players track their recruitment progress in **Pokémon Mystery Dungeon: Blue Rescue Team** (Nintendo DS).
 
 Una Pokédex interactiva creada para facilitar el seguimiento de los Pokémon reclutados y ayudarte a completar tu colección en **Pokémon Mundo Misterioso: Equipo de Rescate Azul**.
+
+## 🌐 Access the Pokédex / Accede a la Pokédex
+
+### 📖 [OPEN THE INTERACTIVE POKÉDEX / ABRIR LA POKÉDEX](https://i-allon.github.io/rescue-team-pokedex/)
+
+**EN:** Access the interactive Pokédex directly from your browser. No downloads or installation required.
+
+**ES:** Consulta la Pokédex directamente desde tu navegador, sin necesidad de descargar ni instalar nada.
 
 ## ✨ Features / Características
 
@@ -16,9 +24,9 @@ Una Pokédex interactiva creada para facilitar el seguimiento de los Pokémon re
 - 💾 **Guardado automático:** Tu progreso se guarda localmente en el navegador.
 - 🔍 **Search & filters:** Find Pokémon by name, number, recruitment status or Friend Area.
 
-## 🚀 How to Use / Cómo utilizarla
+## 📖 How to Use / Cómo utilizarla
 
-1. Open the Pokédex using the GitHub Pages website or the `index.html` file.
+1. Open the [interactive Pokédex](https://i-allon.github.io/rescue-team-pokedex/).
 2. Select your preferred language: English or Spanish.
 3. Click on a Pokémon to mark it as recruited.
 4. Hover over a Pokémon to see its recruitment locations and floors.
