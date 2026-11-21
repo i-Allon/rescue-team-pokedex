@@ -28,6 +28,16 @@ footer{color:var(--muted);font-size:12px;margin-top:22px}a{color:var(--accent)}
 @media(max-width:700px){.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}.grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr))}.stat{flex:1}.card[data-tooltip]:hover::after{display:none}}
 
 .ra-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 18px}.ra-toolbar button.active{border-color:#ffd166;color:#ffd166;background:#352d1e}.ra-panel{display:none}.ra-panel.active{display:block}.ra-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 16px}.ra-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}.ra-ach{border:1px solid var(--line);border-left:4px solid var(--zone-color,#a9b3c8);background:var(--panel);border-radius:13px;padding:14px}.ra-ach.complete{border-color:#d5ae55;background:linear-gradient(130deg,#302d20,#202735)}.ra-ach-head{display:flex;gap:12px;align-items:center}.ra-badge{width:56px;height:56px;flex:0 0 56px;border-radius:9px;background:#343c51;display:grid;place-items:center;font-size:26px;text-decoration:none;border:1px solid #56617b}.ra-badge img{display:block;width:54px;height:54px;object-fit:contain;border-radius:8px;image-rendering:pixelated}.ra-badge-fallback{font-size:11px;text-align:center;color:#a9b3c8}.ra-title{font-weight:700}.ra-small{color:var(--muted);font-size:12px}.ra-track{height:8px;background:#323a4b;border-radius:99px;overflow:hidden;margin:12px 0 7px}.ra-fill{height:100%;background:#65cdb3}.ra-ach.complete .ra-fill{background:#e7bd5b}.ra-missing{font-size:12px;line-height:1.7;margin-top:10px}.ra-missing button{padding:3px 7px;font-size:12px;margin:3px;background:#253047}.ra-note{font-size:12px;color:var(--muted);margin-bottom:12px}
+
+/* Importador nativo de Equipo de Rescate Azul (Europa y Norteamérica). */
+.save-import{margin:0 0 18px;padding:15px 17px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.save-import summary{cursor:pointer;font-weight:700}
+.save-import p{font-size:13px;color:var(--muted);margin:10px 0}
+.save-import input[type=file]{display:block;width:100%;padding:9px;margin:9px 0}
+.save-import .import-result{margin-top:12px;white-space:normal;font-size:13px;line-height:1.65}
+.save-import .import-list{max-height:170px;overflow:auto;white-space:pre-wrap;border:1px solid var(--line);background:#111722;padding:9px;border-radius:8px;margin-top:8px;font-size:12px}
+.save-import .import-action{background:#21584d;border:1px solid #56bfa2;color:white;font-weight:700;margin-top:10px}
+.save-import .import-warning{color:#ffd166}
 </style></head>
 <body>
 <header><h1 id="heading">🔎 Pokédex de rescate</h1><p id="subtitle">Pokémon Mundo Misterioso: Equipo de rescate azul · Marca los que ya has reclutado.</p><div class="langbar"><label for="language" id="languageLabel">Idioma / Language</label><select id="language"><option value="es">🇪🇸 Español</option><option value="en">🇬🇧 English</option></select></div></header>
@@ -36,7 +46,15 @@ footer{color:var(--muted);font-size:12px;margin-top:22px}a{color:var(--accent)}
 <div class="progress"><div id="bar"></div></div>
 <div class="ra-toolbar"><button id="raToggle" type="button">🏆 Modo RetroAchievements</button><span id="raModeHint" class="ra-small"></span></div>
 <div id="raPanel" class="ra-panel"><div class="ra-summary"><strong id="raTotal"></strong><select id="raSort"><option value="missing">Menos Pokémon pendientes</option><option value="percent">Mayor progreso</option><option value="name">Nombre del área</option></select><select id="raFilter"><option value="all">Todos los logros</option><option value="pending">Incompletos</option><option value="done">Completados</option></select></div><p class="ra-note" id="raDisclaimer"></p><div id="raList" class="ra-list"></div></div>
-<div id="dexPanel"><div class="controls">
+<div id="dexPanel">
+<details class="save-import" id="saveImportPanel">
+  <summary>📁 Importar Pokémon reclutados desde una partida (.sav / .dsv)</summary>
+  <p id="saveImportHelp">Compatible con partidas europeas y norteamericanas de Equipo de Rescate Azul en SAV de 128/256/512/1024 KiB o DSV de DeSmuME. Región detectada automáticamente. Otras regiones y Equipo de Rescate Rojo aún no están validados. El archivo se procesa localmente; revisa la vista previa antes de importar.</p>
+  <input id="saveImportFile" type="file" accept=".sav,.dsv,application/octet-stream">
+  <div id="saveImportResult" class="import-result" aria-live="polite"></div>
+  <button type="button" id="saveImportApply" class="import-action" hidden>✅ Añadir Pokémon detectados a la Pokédex</button>
+</details>
+<div class="controls">
 <input id="search" type="search" placeholder="Buscar Pokémon por nombre o número…">
 <select id="filter"><option value="all">Todos los Pokémon</option><option value="pending">Pendientes</option><option value="done">Reclutados</option></select>
 <select id="sort"><option value="number">Orden: número</option><option value="name">Orden: nombre</option><option value="pending">Pendientes primero</option><option value="zone">Zona de recreo</option></select>
@@ -654,4 +672,174 @@ async function init(){
  }
 }
 init();
+
+// Importador local. Estructuras contrastadas con partidas europeas y norteamericanas.
+// Las cadenas de nombre se almacenan en registros de 323 bits (LSB-first) a partir del bit 0x585*8.
+// NO hay 323 bytes por Pokemon; los 8 registros siguientes re-alinean los bits en el mismo byte.
+// Esta tabla es el orden de los registros en el guardado, no una lista de Pokemon capturados.
+const BLUE_EU_ROSTER=["Shellder","Staryu","Anorith","Armaldo","Kingdra","Seadra","Horsea","Luvdisc","Octillery","Sharpedo","Carvanha","","Qwilfish","Wailmer","Wailord","Mantine","Kabutops","Kabuto","Omanyte","Omastar","Clamperl","Lanturn","Chinchou","Huntail","Cradily","Lileep","Gorebyss","","Lugia","Kyogre","Pelipper","Wingull","Corsola","Kingler","Krabby","Graveler","Geodude","Golem","Cubone","Marowak","Gligar","Spoink","Spinda","Grumpig","Teddiursa","Ursaring","Shuckle","Charizard","Aggron","Lairon","Aron","Tyranitar","Pupitar","Larvitar","Charmander","Charmeleon","Clefable","Clefairy","Cleffa","Lunatone","Solrock","","Ho-Oh","Linoone","Hypno","Drowzee","Mightyena","Poochyena","Rattata","Raticate","Farfetch'd","Zigzagoon","Ekans","Arbok","Seviper","","Venusaur","Taillow","Swellow","Ivysaur","Bulbasaur","Meganium","Bayleef","Jumpluff","Chikorita","Skiploom","Hoppip","","Girafarig","Smeargle","Gardevoir","Ralts","Kirlia","Granbull","Snubbull","Wigglytuff","Igglybuff","Jigglypuff","Lickitung","","","Doduo","Donphan","Phanpy","Miltank","Nidorino","Nidoking","Nidoran M","Nidoqueen","Nidorina","Nidoran F","Tauros","Kangaskhan","Dodrio","Rhydon","Rhyhorn","Typhlosion","Blaziken","Quilava","Combusken","Torchic","Cyndaquil","Arcanine","Growlithe","Ponyta","Rapidash","Entei","Raikou","Suicune","Yanma","Ledyba","Cascoon","Beautifly","Ledian","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Silcoon","Wurmple","","Xatu","Murkrow","Hoothoot","Noctowl","Swablu","Natu","Pidgey","Pidgeotto","Pidgeot","Togetic","Togepi","Altaria","Treecko","Grovyle","Sceptile","Scizor","Kecleon","Sudowoodo","Scyther","Pinsir","","Heracross","Mankey","Aipom","Vigoroth","Slakoth","Pikachu","Raichu","Slaking","Stantler","Meowth","Persian","Pichu","Skitty","Snorlax","Primeape","Shroomish","Seedot","Shiftry","Parasect","Paras","Nuzleaf","Breloom","","Umbreon","Espeon","Jolteon","Vaporeon","Flareon","Eevee","Spinarak","Ariados","Venonat","Venomoth","Ninjask","Nincada","Shedinja","Forretress","Pineco","Croconaw","Feraligatr","Totodile","Seaking","Goldeen","Illumise","","Ludicolo","Poliwrath","Lombre","Surskit","Politoed","Poliwhirl","Masquerain","Lotad","Poliwag","Corphish","Blastoise","Crawdaunt","Squirtle","Wartortle","Psyduck","Golduck","Azumarill","Marill","Azurill","Dragonair","Lapras","Dratini","Dragonite","Gyarados","Magikarp","Milotic","Feebas","Wooper","Barboach","Whiscash","Marshtomp","Mudkip","Swampert","Quagsire","Swalot","Gulpin","Muk","Grimer","Weezing","Koffing","Wynaut","Golbat","Exploud","Loudred","Wobbuffet","Crobat","Whismur","Nosepass","Zubat","Mawile","Dunsparce","Mewtwo","Shelgon","Bagon","Salamence","Dugtrio","Diglett","Onix","Steelix","Tangela","Tropius","Bellossom","Sunkern","Bellsprout","Sunflora","Vileplume","Gloom","Oddish","Victreebel","Weepinbell","Exeggcute","Exeggutor","Mr. Mime","Porygon2","Ditto","Kadabra","Abra","Alakazam","","Medicham","Machoke","Machop","Machamp","Meditite","Hariyama","Makuhita","Tyrogue","Hitmonlee","Hitmontop","Hitmonchan","Plusle","Minun","Chimecho","Manectric","Mareep","Electrike","Flaaffy","Sentret","Furret","Ampharos","","Magnemite","Magneton","Electrode","Voltorb","Elekid","Electabuzz","Slugma","Camerupt","Numel","Magcargo","Magby","Magmar","Torkoal","Sandshrew","Flygon","Vibrava","Trapinch","Sandslash","Cacnea","Cacturne","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Unown","Aerodactyl","Claydol","Baltoy","Regirock","Regice","Registeel","Absol","Duskull","Sneasel","Gengar","Gastly","Haunter","Misdreavus","Shuppet","Banette","Sableye","Ninetales","Vulpix","Dusclops","Delibird","Swinub","Piloswine","Glalie","Snorunt","","","Seel","Sealeo","Walrein","Spheal","Dewgong","Groudon","Rayquaza","Houndoom","Houndour","Skarmory","Spearow","Fearow","Metagross","Beldum","Metang","Zapdos","Articuno","Moltres","Latios","Latias","Deoxys","Mew"];
+const BLUE_EU_NAME_IDS={"bulbasaur":1,"ivysaur":2,"venusaur":3,"charmander":4,"charmeleon":5,"charizard":6,"squirtle":7,"wartortle":8,"blastoise":9,"caterpie":10,"metapod":11,"butterfree":12,"weedle":13,"kakuna":14,"beedrill":15,"pidgey":16,"pidgeotto":17,"pidgeot":18,"rattata":19,"raticate":20,"spearow":21,"fearow":22,"ekans":23,"arbok":24,"pikachu":25,"raichu":26,"sandshrew":27,"sandslash":28,"nidoranf":29,"nidorina":30,"nidoqueen":31,"nidoranm":32,"nidorino":33,"nidoking":34,"clefairy":35,"clefable":36,"vulpix":37,"ninetales":38,"jigglypuff":39,"wigglytuff":40,"zubat":41,"golbat":42,"oddish":43,"gloom":44,"vileplume":45,"paras":46,"parasect":47,"venonat":48,"venomoth":49,"diglett":50,"dugtrio":51,"meowth":52,"persian":53,"psyduck":54,"golduck":55,"mankey":56,"primeape":57,"growlithe":58,"arcanine":59,"poliwag":60,"poliwhirl":61,"poliwrath":62,"abra":63,"kadabra":64,"alakazam":65,"machop":66,"machoke":67,"machamp":68,"bellsprout":69,"weepinbell":70,"victreebel":71,"tentacool":72,"tentacruel":73,"geodude":74,"graveler":75,"golem":76,"ponyta":77,"rapidash":78,"slowpoke":79,"slowbro":80,"magnemite":81,"magneton":82,"farfetchd":83,"doduo":84,"dodrio":85,"seel":86,"dewgong":87,"grimer":88,"muk":89,"shellder":90,"cloyster":91,"gastly":92,"haunter":93,"gengar":94,"onix":95,"drowzee":96,"hypno":97,"krabby":98,"kingler":99,"voltorb":100,"electrode":101,"exeggcute":102,"exeggutor":103,"cubone":104,"marowak":105,"hitmonlee":106,"hitmonchan":107,"lickitung":108,"koffing":109,"weezing":110,"rhyhorn":111,"rhydon":112,"chansey":113,"tangela":114,"kangaskhan":115,"horsea":116,"seadra":117,"goldeen":118,"seaking":119,"staryu":120,"starmie":121,"mrmime":122,"scyther":123,"jynx":124,"electabuzz":125,"magmar":126,"pinsir":127,"tauros":128,"magikarp":129,"gyarados":130,"lapras":131,"ditto":132,"eevee":133,"vaporeon":134,"jolteon":135,"flareon":136,"porygon":137,"omanyte":138,"omastar":139,"kabuto":140,"kabutops":141,"aerodactyl":142,"snorlax":143,"articuno":144,"zapdos":145,"moltres":146,"dratini":147,"dragonair":148,"dragonite":149,"mewtwo":150,"mew":151,"chikorita":152,"bayleef":153,"meganium":154,"cyndaquil":155,"quilava":156,"typhlosion":157,"totodile":158,"croconaw":159,"feraligatr":160,"sentret":161,"furret":162,"hoothoot":163,"noctowl":164,"ledyba":165,"ledian":166,"spinarak":167,"ariados":168,"crobat":169,"chinchou":170,"lanturn":171,"pichu":172,"cleffa":173,"igglybuff":174,"togepi":175,"togetic":176,"natu":177,"xatu":178,"mareep":179,"flaaffy":180,"ampharos":181,"bellossom":182,"marill":183,"azumarill":184,"sudowoodo":185,"politoed":186,"hoppip":187,"skiploom":188,"jumpluff":189,"aipom":190,"sunkern":191,"sunflora":192,"yanma":193,"wooper":194,"quagsire":195,"espeon":196,"umbreon":197,"murkrow":198,"slowking":199,"misdreavus":200,"unown":201,"wobbuffet":202,"girafarig":203,"pineco":204,"forretress":205,"dunsparce":206,"gligar":207,"steelix":208,"snubbull":209,"granbull":210,"qwilfish":211,"scizor":212,"shuckle":213,"heracross":214,"sneasel":215,"teddiursa":216,"ursaring":217,"slugma":218,"magcargo":219,"swinub":220,"piloswine":221,"corsola":222,"remoraid":223,"octillery":224,"delibird":225,"mantine":226,"skarmory":227,"houndour":228,"houndoom":229,"kingdra":230,"phanpy":231,"donphan":232,"porygon2":233,"stantler":234,"smeargle":235,"tyrogue":236,"hitmontop":237,"smoochum":238,"elekid":239,"magby":240,"miltank":241,"blissey":242,"raikou":243,"entei":244,"suicune":245,"larvitar":246,"pupitar":247,"tyranitar":248,"lugia":249,"hooh":250,"celebi":251,"treecko":252,"grovyle":253,"sceptile":254,"torchic":255,"combusken":256,"blaziken":257,"mudkip":258,"marshtomp":259,"swampert":260,"poochyena":261,"mightyena":262,"zigzagoon":263,"linoone":264,"wurmple":265,"silcoon":266,"beautifly":267,"cascoon":268,"dustox":269,"lotad":270,"lombre":271,"ludicolo":272,"seedot":273,"nuzleaf":274,"shiftry":275,"taillow":276,"swellow":277,"wingull":278,"pelipper":279,"ralts":280,"kirlia":281,"gardevoir":282,"surskit":283,"masquerain":284,"shroomish":285,"breloom":286,"slakoth":287,"vigoroth":288,"slaking":289,"nincada":290,"ninjask":291,"shedinja":292,"whismur":293,"loudred":294,"exploud":295,"makuhita":296,"hariyama":297,"azurill":298,"nosepass":299,"skitty":300,"delcatty":301,"sableye":302,"mawile":303,"aron":304,"lairon":305,"aggron":306,"meditite":307,"medicham":308,"electrike":309,"manectric":310,"plusle":311,"minun":312,"volbeat":313,"illumise":314,"roselia":315,"gulpin":316,"swalot":317,"carvanha":318,"sharpedo":319,"wailmer":320,"wailord":321,"numel":322,"camerupt":323,"torkoal":324,"spoink":325,"grumpig":326,"spinda":327,"trapinch":328,"vibrava":329,"flygon":330,"cacnea":331,"cacturne":332,"swablu":333,"altaria":334,"zangoose":335,"seviper":336,"lunatone":337,"solrock":338,"barboach":339,"whiscash":340,"corphish":341,"crawdaunt":342,"baltoy":343,"claydol":344,"lileep":345,"cradily":346,"anorith":347,"armaldo":348,"feebas":349,"milotic":350,"castform":351,"kecleon":352,"shuppet":353,"banette":354,"duskull":355,"dusclops":356,"tropius":357,"chimecho":358,"absol":359,"wynaut":360,"snorunt":361,"glalie":362,"spheal":363,"sealeo":364,"walrein":365,"clamperl":366,"huntail":367,"gorebyss":368,"relicanth":369,"luvdisc":370,"bagon":371,"shelgon":372,"salamence":373,"beldum":374,"metang":375,"metagross":376,"regirock":377,"regice":378,"registeel":379,"latias":380,"latios":381,"kyogre":382,"groudon":383,"rayquaza":384,"jirachi":385,"deoxys":386};
+// Seven valid species precede the older parser's first slot (Shellder).
+const BLUE_EU_PREFIX=["Tentacruel","Tentacool","Slowbro","Slowpoke","Slowking","Cloyster","Starmie"];
+const BLUE_EU_START_BIT=0x585*8, BLUE_EU_RECORD_BITS=323, BLUE_EU_COUNT=406;
+let saveImportPending=null;
+function blueReadBits(bytes,start,n){
+ let v=0;for(let i=0;i<n;i++)v+=((bytes[(start+i)>>3]>>((start+i)&7))&1)*(2**i);
+ return v;
+}
+function blueReadName(bytes,start){
+ let s='';for(let i=0;i<10;i++){const x=blueReadBits(bytes,start+i*8,8);if(x===0)break;s+=String.fromCharCode(x===0xa0?32:x);}
+ return s.trim();
+}
+function blueHasRecruitedName(name){
+ // Confirmado con dos guardados del mismo juego: uno con Carvanha reclutado
+ // y otro después de eliminar únicamente a Carvanha en Sky Editor.
+ // La eliminación borra el nombre del registro 10; la comprobación antigua
+ // de los siguientes 243 bits examinaba datos de otro Pokémon (registro 11).
+ // Los 80 bits del nombre del registro son el indicador comprobado de presencia.
+ return name.length > 0;
+}
+function blueNormalizeName(x){return String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+// Los identificadores de especie son independientes del mote y de la posición.
+// Correspondencias obtenidas de registros cuyo nombre coincide con la especie,
+// contrastadas con el formato de guardado; 326 = Delcatty (Rescue Team Wiki).
+const BLUE_EU_INTERNAL_TO_DEX={"73":73,"72":72,"80":80,"79":79,"199":199,"91":91,"121":121,"90":90,"120":120,"372":347,"373":348,"255":230,"117":117,"116":116,"398":370,"249":224,"344":319,"343":318,"236":211,"345":320,"346":321,"251":226,"141":141,"140":140,"138":138,"139":139,"394":366,"171":171,"170":170,"395":367,"371":346,"370":345,"396":368,"274":249,"410":382,"304":279,"303":278,"247":222,"99":99,"98":98,"75":75,"74":74,"76":76,"104":104,"105":105,"232":207,"350":325,"352":327,"351":326,"241":216,"242":217,"238":213,"6":6,"331":306,"330":305,"329":304,"273":248,"272":247,"271":246,"4":4,"5":5,"36":36,"35":35,"173":173,"362":337,"363":338,"275":250,"289":264,"97":97,"96":96,"287":262,"286":261,"19":19,"20":20,"83":83,"288":263,"23":23,"24":24,"361":336,"3":3,"301":276,"302":277,"2":2,"1":1,"154":154,"153":153,"189":189,"152":152,"188":188,"187":187,"228":203,"260":235,"307":282,"305":280,"306":281,"235":210,"234":209,"40":40,"174":174,"39":39,"108":108,"84":84,"257":232,"256":231,"266":241,"33":33,"34":34,"31":31,"30":30,"128":128,"115":115,"85":85,"112":112,"111":111,"157":157,"282":257,"156":156,"281":256,"280":255,"155":155,"59":59,"58":58,"77":77,"78":78,"269":244,"268":243,"270":245,"193":193,"165":165,"293":268,"292":267,"166":166,"10":10,"11":11,"12":12,"13":13,"14":14,"15":15,"291":266,"290":265,"178":178,"198":198,"163":163,"164":164,"358":333,"177":177,"16":16,"17":17,"18":18,"176":176,"175":175,"359":334,"277":252,"278":253,"279":254,"237":212,"380":352,"185":185,"123":123,"127":127,"56":56,"190":190,"313":288,"312":287,"25":25,"26":26,"314":289,"259":234,"52":52,"53":53,"172":172,"325":300,"143":143,"57":57,"310":285,"298":273,"300":275,"47":47,"46":46,"299":274,"311":286,"197":197,"196":196,"135":135,"134":134,"136":136,"133":133,"167":167,"168":168,"48":48,"49":49,"316":291,"315":290,"317":292,"230":205,"159":159,"160":160,"158":158,"119":119,"118":118,"339":314,"297":272,"62":62,"296":271,"308":283,"186":186,"61":61,"309":284,"295":270,"60":60,"366":341,"9":9,"367":342,"7":7,"8":8,"54":54,"55":55,"184":184,"183":183,"323":298,"148":148,"131":131,"147":147,"149":149,"130":130,"129":129,"375":350,"374":349,"194":194,"364":339,"365":340,"284":259,"283":258,"285":260,"195":195,"342":317,"341":316,"89":89,"88":88,"110":110,"109":109,"388":360,"42":42,"320":295,"319":294,"227":202,"169":169,"318":293,"324":299,"41":41,"328":303,"231":206,"150":150,"400":372,"399":371,"401":373,"51":51,"50":50,"95":95,"233":208,"114":114,"385":357,"182":182,"191":191,"69":69,"192":192,"45":45,"44":44,"43":43,"71":71,"70":70,"102":102,"103":103,"122":122,"258":233,"132":132,"64":64,"63":63,"65":65,"333":308,"67":67,"66":66,"68":68,"332":307,"322":297,"321":296,"261":236,"106":106,"262":237,"107":107,"336":311,"337":312,"386":358,"335":310,"179":179,"334":309,"180":180,"161":161,"162":162,"181":181,"81":81,"82":82,"101":101,"100":100,"264":239,"125":125,"243":218,"348":323,"347":322,"244":219,"265":240,"126":126,"349":324,"27":27,"355":330,"354":329,"353":328,"28":28,"356":331,"357":332,"142":142,"369":344,"368":343,"405":377,"406":378,"407":379,"387":359,"383":355,"240":215,"94":94,"92":92,"93":93,"200":200,"381":353,"382":354,"327":302,"38":38,"37":37,"384":356,"250":225,"245":220,"246":221,"390":362,"389":361,"86":86,"392":364,"393":365,"391":363,"87":87,"411":383,"412":384,"254":229,"253":228,"252":227,"21":21,"22":22,"404":376,"402":374,"403":375,"145":145,"144":144,"146":146,"409":381,"408":380,"414":386,"151":151,"326":301,"29":29,"32":32,"229":204};
+const BLUE_EU_UNOWN_INTERNAL={"208":"A","203":"B","212":"C","209":"D","202":"E","204":"F","211":"G","213":"H","214":"I","210":"J","206":"K","207":"L","201":"M","205":"N","226":"O","216":"P","223":"Q","219":"R","416":"S","222":"T","218":"U","220":"V","415":"W","215":"X","224":"Y","221":"Z","225":"!","217":"?"};
+// Los cuatro códigos adicionales aparecen en la partida americana de prueba.
+Object.assign(BLUE_EU_INTERNAL_TO_DEX,{413:385,239:214,276:251,338:313});
+// Correspondencias confirmadas con la partida europea completa de 413 entradas.
+// No se marcan especies por nombre ni por posición; se consulta el identificador
+// interno de cada registro ocupado. Funcionan igualmente con apodos.
+Object.assign(BLUE_EU_INTERNAL_TO_DEX,{
+  113:113, // Chansey
+  124:124, // Jynx
+  137:137, // Porygon
+  248:223, // Remoraid
+  263:238, // Smoochum
+  267:242, // Blissey
+  294:269, // Dustox
+  340:315, // Roselia
+  360:335, // Zangoose
+  376:351, // Castform
+  397:369  // Relicanth
+});
+const BLUE_EU_RECORD_SPECIES_OFFSET=-236;
+const BLUE_SAVE_LAYOUTS={
+  EU:{label:'Europa (EUR)',startBit:0x585*8,first:-7,last:405},
+  US:{label:'Norteamérica (USA)',startBit:0x807*8,first:0,last:390}
+};
+function blueExtractSavePayload(buffer){
+ const raw=new Uint8Array(buffer), magic='POKE_DUNGEON';
+ // DeSmuME adds a 122-byte footer ending in this exact ASCII cookie.
+ const cookie='|-DESMUME SAVE-|';
+ let end=raw.length,format='SAV';
+ if(end>=122){
+   const last=String.fromCharCode(...raw.subarray(end-16,end));
+   if(last===cookie){end-=122;format='DSV';}
+ }
+ // 128 KiB stores complete Blue Rescue Team primary blocks, other
+ // emulators sometimes pad to 256/512 KiB or beyond.
+ if(end<131072 || end>1048576 || ![131072,262144,524288,1048576].includes(end)){
+   throw Error('Tamaño de guardado no reconocido ('+raw.length+' bytes). Se admiten SAV de 128, 256, 512 o 1024 KiB y DSV con cabecera válida.');
+ }
+ const bytes=raw.subarray(0,end);
+ const at=offset=>String.fromCharCode(...bytes.subarray(offset,offset+magic.length))===magic;
+ if(!at(0x404) || !at(0x6404)){
+   throw Error('No se reconocen los bloques principales de una partida de Equipo de Rescate Azul. No se ha importado nada.');
+ }
+ const regionId=String.fromCharCode(bytes[0x404+13]);
+ const otherRegionId=String.fromCharCode(bytes[0x6404+13]);
+ if(regionId!==otherRegionId || !['E','_'].includes(regionId)){
+   throw Error('Región o estructura de guardado no admitida. No se ha importado nada.');
+ }
+ const region=regionId==='E'?'EU':'US';
+ // Long files are only accepted if trailing bytes are plain emulator padding,
+ // preventing a different game with a matching incidental header from importing.
+ if(end>262144){
+   const tail=bytes.subarray(262144);
+   if(!tail.every(x=>x===0xff || x===0x00))throw Error('El archivo contiene datos adicionales que no son relleno; no se ha importado nada para evitar errores.');
+ }
+ return {bytes,format,size:end,region};
+}
+function blueParseRegional(buffer){
+ const extracted=blueExtractSavePayload(buffer);
+ const bytes=extracted.bytes, layout=BLUE_SAVE_LAYOUTS[extracted.region];
+ const slots=[];let anchors=0,compared=0,active=0,known=0,invalid=0;
+ for(let i=layout.first;i<=layout.last;i++){
+   const pos=layout.startBit+i*BLUE_EU_RECORD_BITS;
+   const name=blueReadName(bytes,pos);
+   const species=blueReadBits(bytes,pos+BLUE_EU_RECORD_SPECIES_OFFSET,9);
+   // Descartar datos de otras estructuras: 10 caracteres imprimibles máximo.
+   const printable=name && /^[\x20-\x7e\xa0-\xff]{1,10}$/.test(name);
+   if(!printable)continue;
+   const dexId=BLUE_EU_INTERNAL_TO_DEX[species];
+   const form=BLUE_EU_UNOWN_INTERNAL[species];
+   const knownSpecies=Boolean(dexId||form);
+   const nameDexId=BLUE_EU_NAME_IDS[blueNormalizeName(name)];
+   if(nameDexId && dexId && nameDexId===dexId)anchors++;
+   compared++;
+   active++;
+   if(knownSpecies)known++;else invalid++;
+   slots.push({slot:i,name,species,active:knownSpecies});
+ }
+ // Un guardado con pocos Pokémon también es válido, pero exige códigos válidos.
+ // Con más registros, al menos un nombre de especie reconocible confirma alineación.
+ if(active>0 && (known===0 || invalid>Math.max(2,active*0.15) || (active>=5 && anchors===0))){
+   throw Error('Los registros de Pokémon no se han podido validar de forma segura ('+known+' códigos conocidos de '+active+'). No se ha importado nada.');
+ }
+ return {slots,anchors,compared,empty:active===0,region:extracted.region,regionLabel:layout.label,format:extracted.format,saveSize:extracted.size};
+}
+
+function bluePrepareImport(parsed){
+ const matches=new Map(),unknown=[];
+ for(const entry of parsed.slots){
+  if(!entry.active)continue;
+  let id=null,display='';
+  if(Object.prototype.hasOwnProperty.call(BLUE_EU_UNOWN_INTERNAL,entry.species)){
+    const form=BLUE_EU_UNOWN_INTERNAL[entry.species];
+    id=form==='A'?201:386+unownForms.indexOf(form);
+    display='Unown '+form;
+  }else{
+    id=BLUE_EU_INTERNAL_TO_DEX[entry.species]||null;
+    display=id?Object.keys(BLUE_EU_NAME_IDS).find(n=>BLUE_EU_NAME_IDS[n]===id)||('Pokémon #'+id):('Código interno '+entry.species);
+  }
+  // Nunca asociar un mote desconocido con una especie por su casilla.
+  if(id!=null && id>=1 && id<=413){matches.set(id,display);}else unknown.push({slot:entry.slot,name:entry.name,species:entry.species});
+ }
+ return {matches,unknown,active:parsed.slots.filter(x=>x.active).length};
+}
+function blueShowPreview(result){
+ const t=lang==='en',area=$('saveImportResult'),newIds=[...result.matches.keys()].filter(id=>!recruited.has(id));
+ const already=result.matches.size-newIds.length;
+ const uncertain=result.unknown.length;
+ const intro=t?`Detected ${result.matches.size} Pokémon entries (${newIds.length} new marks, ${already} already marked).`:`Detectados ${result.matches.size} Pokémon (${newIds.length} nuevas marcas, ${already} ya marcados).`;
+ const explanation=t?'The detected Pokémon are not marked until you confirm. Existing marks and copy counts will be preserved.':'No se marcará ningún Pokémon hasta que confirmes. Se conservarán las marcas actuales y los contadores de copias.';
+ area.replaceChildren();
+ const head=document.createElement('div');head.innerHTML=`<strong>${intro}</strong> ${explanation}`;area.appendChild(head);
+ const list=document.createElement('div');list.className='import-list';
+ list.textContent=[...result.matches].filter(([id])=>!recruited.has(id)).map(([,name])=>'✓ '+name).join(' · ') || (t?'No new Pokémon to mark.':'No hay Pokémon nuevos para marcar.');
+ area.appendChild(list);
+ if(uncertain){const warn=document.createElement('div');warn.className='import-warning';warn.textContent=(t?`Active records with an unknown species code: ${uncertain}. They were not marked automatically.`:`Registros activos con código de especie aún sin identificar: ${uncertain}. No se han marcado automáticamente.`);area.appendChild(warn);}
+ saveImportPending=result;$('saveImportApply').hidden=newIds.length===0;
+}
+$('saveImportFile').addEventListener('change',async e=>{
+ saveImportPending=null;$('saveImportApply').hidden=true;
+ const result=$('saveImportResult'),file=e.target.files?.[0];
+ result.textContent='';if(!file)return;
+ try{
+   const parsed=blueParseRegional(await file.arrayBuffer());
+   const prepared=bluePrepareImport(parsed);
+   if(parsed.empty){result.textContent=lang==='en'?'Valid '+parsed.regionLabel+' save, but no recruited Pokémon records were found. Nothing to import.':'Partida '+parsed.regionLabel+' reconocida, pero no contiene Pokémon reclutados en la tabla analizada. No hay nada que importar.';return;}
+   blueShowPreview(prepared);
+   $('saveImportResult').prepend(Object.assign(document.createElement('div'),{textContent:'Región detectada: '+parsed.regionLabel+' · '+parsed.format}));
+ }catch(err){result.textContent='⚠️ '+err.message;}
+});
+$('saveImportApply').addEventListener('click',()=>{
+ if(!saveImportPending)return;
+ const newIds=[...saveImportPending.matches.keys()].filter(id=>!recruited.has(id));
+ for(const id of newIds)recruited.add(id);
+ save();render();
+ $('saveImportApply').hidden=true;saveImportPending=null;
+ $('saveImportResult').textContent=(lang==='en'?`Imported ${newIds.length} new marks. Previous marks and copy counters have been kept.`:`Se han añadido ${newIds.length} marcas. Las anteriores y los contadores de copias se han conservado.`);
+});
 </script></body></html>
